@@ -1,500 +1,352 @@
-import React, { useState, useEffect } from 'react';
-import { Brain, Zap, TrendingUp, Clock, Target, Star, Users, BarChart3, Calendar, MapPin, Trophy, AlertCircle, CheckCircle2, RefreshCw, Menu } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { uberDriverAPI, type EnhancedDigitalTwinProfile, type OptimizationScenario, type DriverListItem, type DriverComparison } from '@/lib/api';
+import { Card } from "@/components/ui/card";
+import { Navigation, RefreshCw, MapPin, Clock, DollarSign, TrendingUp, CloudRain, Sun, AlertTriangle, Route } from "lucide-react";
+import { useState, useEffect } from "react";
 
-const AICoach: React.FC = () => {
-  const [profile, setProfile] = useState<EnhancedDigitalTwinProfile | null>(null);
-  const [scenarios, setScenarios] = useState<OptimizationScenario[]>([]);
-  const [selectedScenario, setSelectedScenario] = useState<string>('');
-  const [currentPerformance, setCurrentPerformance] = useState<any>(null);
-  const [behavioralProfile, setBehavioralProfile] = useState<any>(null);
-  const [keyInsights, setKeyInsights] = useState<string[]>([]);
-  const [availableDrivers, setAvailableDrivers] = useState<DriverListItem[]>([]);
-  const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
-  const [driverComparison, setDriverComparison] = useState<DriverComparison[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [currentDriverId, setCurrentDriverId] = useState('E10156');
+interface RouteStop {
+  sequence: number;
+  peak_id: string;
+  source: string;
+  location: string;
+  arrival_time: string;
+  service_time_window: string;
+  departure_time: string;
+  base_revenue: number;
+  weather_adjusted_revenue: number;
+  weather_multiplier: number;
+  weather_conditions: string;
+  estimated_wait_minutes: number;
+  travel_to_next_minutes: number;
+  reasoning: string;
+}
 
-  useEffect(() => {
-    loadDigitalTwinData();
-    loadAvailableDrivers();
-  }, [currentDriverId]);
+interface RejectedOpportunity {
+  peak_id: string;
+  reason: string;
+  potential_revenue_lost: number;
+}
 
-  const loadDigitalTwinData = async () => {
+interface RouteSummary {
+  total_base_revenue: number;
+  total_weather_adjusted_revenue: number;
+  weather_bonus_revenue: number;
+  total_active_time_hours: number;
+  revenue_per_hour: number;
+  number_of_stops: number;
+  total_distance_miles: number;
+  total_wait_time_minutes: number;
+  bad_weather_stops: number;
+  good_weather_stops: number;
+  efficiency_score: number;
+  confidence: number;
+}
+
+interface OrchestratorResponse {
+  optimal_route: RouteStop[];
+  rejected_opportunities: RejectedOpportunity[];
+  summary: RouteSummary;
+  weather_strategy: string;
+  execution_strategy: string;
+  risk_assessment: string;
+  city: string;
+  timestamp: string;
+}
+
+interface OrchestratorData {
+  orchestrator_response: OrchestratorResponse;
+}
+
+const RouteOptimizer = () => {
+  const [routeData, setRouteData] = useState<OrchestratorData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<string>("");
+
+  const fetchRouteData = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      const [profileData, optimizationData] = await Promise.all([
-        uberDriverAPI.getDigitalTwinProfile(currentDriverId),
-        uberDriverAPI.optimizeSchedule(currentDriverId)
-      ]);
-
-      setProfile(profileData.profile);
-      setScenarios(optimizationData.scenarios);
-      setSelectedScenario(optimizationData.best_scenario);
-      setCurrentPerformance(optimizationData.current_performance);
-      setBehavioralProfile(optimizationData.behavioral_profile);
-      setKeyInsights(optimizationData.key_insights);
-    } catch (error) {
-      console.error('Error loading Digital Twin data:', error);
+      const response = await fetch('http://127.0.0.1:1002/orchestrate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ city: 'New York' })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data: OrchestratorData = await response.json();
+      setRouteData(data);
+      setLastUpdate(new Date().toLocaleTimeString());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load route data');
+      console.error('Route API fetch error:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadAvailableDrivers = async () => {
-    try {
-      const driversData = await uberDriverAPI.getAvailableDrivers();
-      setAvailableDrivers(driversData.top_drivers);
-    } catch (error) {
-      console.error('Error loading available drivers:', error);
-    }
-  };
+  useEffect(() => {
+    fetchRouteData();
+  }, []);
 
-  const handleCompareDrivers = async () => {
-    if (selectedDrivers.length < 2) return;
-    
-    try {
-      const comparison = await uberDriverAPI.compareDrivers(selectedDrivers);
-      setDriverComparison(comparison.drivers);
-    } catch (error) {
-      console.error('Error comparing drivers:', error);
-    }
-  };
-
-  const applyOptimization = (scenarioName: string) => {
-    const scenario = scenarios.find(s => s.name === scenarioName);
-    if (!scenario) return;
-
-    alert(`🎯 Applying "${scenario.display_name}" Strategy!\n\n` +
-          `📈 Projected Earnings: €${scenario.projected_earnings}/week\n` +
-          `⚡ Improvement: +${scenario.improvement}%\n` +
-          `⏰ Weekly Hours: ${scenario.weekly_hours}h\n` +
-          `🎯 Confidence: ${scenario.confidence}\n\n` +
-          `Your Digital Twin will guide you through this optimization!`);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-bg pb-24 flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="animate-spin h-8 w-8 text-primary mx-auto mb-2" />
-          <span className="text-muted-foreground">AI is learning your driving patterns...</span>
-        </div>
-      </div>
-    );
-  }
-
-  const getScenarioIcon = (scenarioName: string) => {
-    const name = scenarioName.toLowerCase();
-    if (name.includes('early')) return <Clock className="w-4 h-4" />;
-    if (name.includes('surge')) return <Zap className="w-4 h-4" />;
-    if (name.includes('weekend')) return <Target className="w-4 h-4" />;
-    if (name.includes('consistent')) return <BarChart3 className="w-4 h-4" />;
-    return <TrendingUp className="w-4 h-4" />;
-  };
-
-  const getScenarioColor = (improvement: number) => {
-    if (improvement >= 500) return 'bg-emerald-100 text-emerald-800 border-emerald-200';
-    if (improvement >= 250) return 'bg-green-100 text-green-800 border-green-200';
-    if (improvement >= 100) return 'bg-blue-100 text-blue-800 border-blue-200';
-    return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-  };
-
-  const formatSchedule = (schedule: Record<string, string>) => {
-    return Object.entries(schedule).map(([day, times]) => (
-      <div key={day} className="flex justify-between text-sm">
-        <span className="font-medium text-foreground">{day}:</span>
-        <span className="text-muted-foreground">{times}</span>
-      </div>
-    ));
+  const getWeatherIcon = (conditions: string) => {
+    if (conditions.toLowerCase().includes('rain')) return CloudRain;
+    if (conditions.toLowerCase().includes('clear') || conditions.toLowerCase().includes('sunny')) return Sun;
+    return CloudRain;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-bg pb-24">
-      <div className="max-w-md mx-auto p-4 space-y-4">
-        {/* Enhanced Header */}
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-gradient-to-br from-purple-100 to-blue-100 rounded-lg">
-              <Brain className="w-6 h-6 text-primary" />
+    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-900 to-cyan-900 pb-24">
+      <div className="max-w-2xl mx-auto p-4 space-y-4">
+        {/* Header */}
+        <div className="pt-2">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <Navigation className="w-8 h-8 text-emerald-400" />
+              <div>
+                <h1 className="text-2xl font-bold text-white">Smart Route Optimizer</h1>
+                <p className="text-sm text-emerald-300">AI-powered revenue maximization</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Optimization</h1>
-            </div>
+            <button
+              onClick={fetchRouteData}
+              disabled={loading}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 text-white rounded-lg transition-all duration-200 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className="text-sm font-medium">Generate Route</span>
+            </button>
           </div>
-          <div className="flex items-center space-x-2">
-            <Select value={currentDriverId} onValueChange={setCurrentDriverId}>
-              <SelectTrigger className="w-20 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {availableDrivers.slice(0, 5).map(driver => (
-                  <SelectItem key={driver.driver_id} value={driver.driver_id} className="text-xs">
-                    {driver.driver_id}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {lastUpdate && (
+            <p className="text-xs text-emerald-400">Last generated: {lastUpdate}</p>
+          )}
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-muted text-xs">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="scenarios">Scenarios</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            {/* <TabsTrigger value="compare">Compare</TabsTrigger> */}
-          </TabsList>
-
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-4 mt-4">
-            {/* Current vs Optimized Performance */}
-            {currentPerformance && (
-              <div className="space-y-4">
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center space-x-2 text-sm">
-                      <AlertCircle className="w-4 h-4 text-orange-500" />
-                      <span>Current Performance</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground text-sm">Weekly Earnings</span>
-                      <span className="text-lg font-bold text-foreground">€{currentPerformance.weekly_earnings}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground text-sm">Weekly Hours</span>
-                      <span className="text-sm font-semibold text-foreground">{currentPerformance.weekly_hours}h</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground text-sm">Efficiency Score</span>
-                      <span className="text-sm font-semibold text-orange-600">{currentPerformance.efficiency_score}%</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-gradient-ai border-primary/50 shadow-glow-ai">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center space-x-2 text-sm text-white">
-                      <CheckCircle2 className="w-4 h-4 text-white" />
-                      <span>AI Optimized Potential</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {scenarios.length > 0 && (
-                      <>
-                        <div className="flex justify-between items-center">
-                          <span className="text-white/70 text-sm">Best Strategy</span>
-                          <Badge className="bg-white/20 text-white text-xs">
-                            {selectedScenario.replace('_', ' ').toUpperCase()}
-                          </Badge>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-white/70 text-sm">Projected Earnings</span>
-                          <span className="text-lg font-bold text-white">
-                            €{scenarios.find(s => s.name === selectedScenario)?.projected_earnings || 0}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-white/70 text-sm">Improvement</span>
-                          <span className="text-sm font-semibold text-white">
-                            +{scenarios.find(s => s.name === selectedScenario)?.improvement || 0}%
-                          </span>
-                        </div>
-                        <Button 
-                          onClick={() => applyOptimization(selectedScenario)} 
-                          className="w-full bg-white text-primary hover:bg-white/90 mt-3"
-                        >
-                          <Target className="w-3 h-3 mr-1" />
-                          Apply This Strategy
-                        </Button>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
+        {/* Thinking Animation */}
+        {loading && (
+          <Card className="p-6 bg-emerald-900/30 border-emerald-700/50">
+            <div className="flex flex-col items-center justify-center space-y-3">
+              <div className="flex space-x-2">
+                <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" style={{ animationDelay: '0s' }}></div>
+                <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+                <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
               </div>
-            )}
+              <p className="text-emerald-400 text-sm animate-pulse">Optimizing your route...</p>
+            </div>
+          </Card>
+        )}
 
-            {/* Key Insights */}
-            {keyInsights.length > 0 && (
-              <Card className="bg-card border-border">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center space-x-2 text-sm">
-                    <Trophy className="w-4 h-4 text-yellow-500" />
-                    <span>AI Key Insights</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {keyInsights.slice(0, 3).map((insight, index) => (
-                      <div key={index} className="flex items-start space-x-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                        <span className="text-xs text-blue-800 dark:text-blue-200">{insight}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+        {/* Error Display */}
+        {error && !loading && (
+          <Card className="p-4 bg-red-900/20 border-red-500/50">
+            <p className="text-red-400 text-sm">{error}</p>
+          </Card>
+        )}
 
-          {/* Scenarios Tab */}
-          <TabsContent value="scenarios" className="space-y-4 mt-4">
-            {scenarios.map((scenario, index) => (
-              <Card key={index} className={`${
-                scenario.is_recommended ? 'border-green-500 bg-green-50/50 dark:bg-green-950/20' : 
-                selectedScenario === scenario.name ? 'border-primary bg-blue-50/50 dark:bg-blue-950/20' : 
-                'bg-card border-border'
-              } cursor-pointer transition-all`}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      {getScenarioIcon(scenario.name)}
-                      <div>
-                        <h3 className="font-semibold text-foreground text-sm">{scenario.display_name}</h3>
-                        <Badge className={`${getScenarioColor(scenario.improvement)} text-xs`} variant="outline">
-                          +{scenario.improvement.toFixed(0)}%
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-green-600">€{scenario.projected_earnings}</div>
-                      <div className="text-xs text-muted-foreground">{scenario.weekly_hours}h/week</div>
-                    </div>
-                  </div>
-                  
-                  <p className="text-xs text-muted-foreground mb-3">{scenario.description}</p>
-                  
-                  <div className="space-y-2 mb-3">
-                    <div>
-                      <div className="flex justify-between text-xs mb-1">
-                        <span className="text-muted-foreground">Feasibility</span>
-                        <span className="text-muted-foreground">{Math.round(scenario.feasibility * 100)}%</span>
-                      </div>
-                      <Progress value={scenario.feasibility * 100} className="h-1" />
-                    </div>
-                  </div>
-
-                  {/* Schedule Details */}
-                  {Object.keys(scenario.schedule).length > 0 && (
-                    <div className="mt-3 p-2 bg-muted/50 rounded-lg">
-                      <div className="text-xs font-medium text-foreground mb-1">📅 Schedule:</div>
-                      <div className="space-y-0.5 text-xs">
-                        {Object.entries(scenario.schedule).slice(0, 3).map(([day, times]) => (
-                          <div key={day} className="flex justify-between">
-                            <span className="font-medium text-foreground">{day}:</span>
-                            <span className="text-muted-foreground">{times}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex space-x-2 mt-3">
-                    <Button 
-                      onClick={() => setSelectedScenario(scenario.name)}
-                      variant={selectedScenario === scenario.name ? "default" : "outline"}
-                      size="sm"
-                      className="flex-1 text-xs"
-                    >
-                      Select
-                    </Button>
-                    <Button 
-                      onClick={() => applyOptimization(scenario.name)}
-                      variant="default" 
-                      size="sm"
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-xs"
-                    >
-                      Apply
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </TabsContent>
-
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-4 mt-4">
-            {profile && behavioralProfile && (
-              <>
-                {/* Behavioral Profile */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center space-x-2 text-sm">
-                      <BarChart3 className="w-4 h-4 text-blue-500" />
-                      <span>Behavioral Profile</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <span className="text-xs font-medium text-foreground">Peak Hours: </span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {behavioralProfile.preferred_hours.slice(0, 5).map((hour: number) => (
-                          <Badge key={hour} variant="outline" className="text-xs px-1 py-0">
-                            {hour}:00
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-xs font-medium text-foreground">Peak Days: </span>
-                      <span className="text-xs text-muted-foreground">{behavioralProfile.peak_days.join(', ')}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 mt-3">
-                      <div className="text-center p-2 bg-blue-50 dark:bg-blue-950/20 rounded text-xs">
-                        <div className="font-bold text-blue-600">€{behavioralProfile.avg_earnings_per_hour}</div>
-                        <div className="text-muted-foreground">Avg/Hour</div>
-                      </div>
-                      <div className="text-center p-2 bg-purple-50 dark:bg-purple-950/20 rounded text-xs">
-                        <div className="font-bold text-purple-600">{Math.round(behavioralProfile.consistency_score * 100)}%</div>
-                        <div className="text-muted-foreground">Consistency</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Ride Statistics */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center space-x-2 text-sm">
-                      <MapPin className="w-4 h-4 text-green-500" />
-                      <span>Ride Statistics</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Total Rides</span>
-                      <span className="font-semibold text-foreground">{profile.ride_statistics.total_rides}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Busiest Hour</span>
-                      <span className="font-semibold text-foreground">{profile.ride_statistics.busiest_hour}</span>
-                    </div>
-                    <div className="mt-2 p-2 bg-muted/50 rounded-lg">
-                      <div className="text-xs font-medium text-foreground mb-1">Earnings per Minute:</div>
-                      <div className="text-xs space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">All rides:</span>
-                          <span className="text-foreground">€{profile.ride_statistics.earnings_per_minute_all}</span>
-                        </div>
-                        <div className="flex justify-between text-green-600">
-                          <span>Short rides (&lt;15min):</span>
-                          <span>€{profile.ride_statistics.earnings_per_minute_short}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Weekly Breakdown */}
-                <Card className="bg-card border-border">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center space-x-2 text-sm">
-                      <Calendar className="w-4 h-4 text-purple-500" />
-                      <span>Weekly Distribution</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-7 gap-1">
-                      {Object.entries(profile.weekly_breakdown).map(([day, rides]) => (
-                        <div key={day} className="text-center p-1 bg-muted/30 rounded text-xs">
-                          <div className="font-medium text-foreground">{day.slice(0, 3)}</div>
-                          <div className="text-sm font-bold text-blue-600">{rides}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
-            )}
-          </TabsContent>
-
-          {/* Compare Tab - Commented Out */}
-          {/* 
-          <TabsContent value="compare" className="space-y-4 mt-4">
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center space-x-2 text-sm">
-                  <Users className="w-4 h-4 text-indigo-500" />
-                  <span>Compare with other anonymous drivers</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs font-medium text-foreground mb-2 block">Select Drivers:</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {availableDrivers.slice(0, 4).map(driver => (
-                        <label key={driver.driver_id} className="flex items-center space-x-1 p-2 border rounded cursor-pointer hover:bg-muted/20 text-xs">
-                          <input 
-                            type="checkbox" 
-                            className="w-3 h-3"
-                            checked={selectedDrivers.includes(driver.driver_id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedDrivers(prev => [...prev, driver.driver_id]);
-                              } else {
-                                setSelectedDrivers(prev => prev.filter(id => id !== driver.driver_id));
-                              }
-                            }}
-                          />
-                          <span className="text-foreground">{driver.driver_id}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    onClick={handleCompareDrivers} 
-                    disabled={selectedDrivers.length < 2}
-                    className="w-full text-xs"
-                  >
-                    <Users className="w-3 h-3 mr-1" />
-                    Compare Drivers
-                  </Button>
-
-                  {driverComparison.length > 0 && (
-                    <div className="space-y-3">
-                      {driverComparison.map((driver, index) => (
-                        <div key={index} className="p-3 border rounded-lg bg-muted/20">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-bold text-sm text-foreground">{driver.driver_id}</h3>
-                            <Badge className="bg-blue-100 text-blue-800 text-xs">
-                              {driver.best_strategy.replace('_', ' ').toUpperCase()}
-                            </Badge>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div className="text-center p-1 bg-card rounded">
-                              <div className="font-bold text-foreground">€{driver.current_weekly}</div>
-                              <div className="text-muted-foreground">Current</div>
-                            </div>
-                            <div className="text-center p-1 bg-green-50 dark:bg-green-950/20 rounded">
-                              <div className="font-bold text-green-600">€{driver.optimized_weekly}</div>
-                              <div className="text-muted-foreground">Optimized</div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+        {/* Route Summary Card */}
+        {!loading && routeData && (
+          <>
+            <Card className="p-5 bg-gradient-to-br from-emerald-600 to-teal-600 border-emerald-500/50 shadow-lg shadow-emerald-500/20">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="w-6 h-6 text-white" />
+                <h3 className="text-xl font-bold text-white">Revenue Forecast</h3>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-emerald-100 text-sm">Total Revenue</p>
+                  <p className="text-3xl font-bold text-white">${routeData.orchestrator_response.summary.total_weather_adjusted_revenue}</p>
                 </div>
-              </CardContent>
+                <div>
+                  <p className="text-emerald-100 text-sm">Per Hour</p>
+                  <p className="text-3xl font-bold text-white">${routeData.orchestrator_response.summary.revenue_per_hour.toFixed(2)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 pt-3 border-t border-emerald-400/30">
+                <div className="text-center">
+                  <p className="text-emerald-100 text-xs">Stops</p>
+                  <p className="text-xl font-bold text-white">{routeData.orchestrator_response.summary.number_of_stops}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-emerald-100 text-xs">Total Time</p>
+                  <p className="text-xl font-bold text-white">{routeData.orchestrator_response.summary.total_active_time_hours.toFixed(1)}h</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-emerald-100 text-xs">Distance</p>
+                  <p className="text-xl font-bold text-white">{routeData.orchestrator_response.summary.total_distance_miles.toFixed(1)}mi</p>
+                </div>
+              </div>
             </Card>
-          </TabsContent>
-          */}
-        </Tabs>
+
+            {/* Optimal Route */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Route className="w-5 h-5 text-emerald-400" />
+                <h2 className="text-xl font-bold text-white">Your Optimized Route</h2>
+              </div>
+
+              {routeData.orchestrator_response.optimal_route.map((stop, index) => {
+                const WeatherIcon = getWeatherIcon(stop.weather_conditions);
+                const isLast = index === routeData.orchestrator_response.optimal_route.length - 1;
+
+                return (
+                  <div key={stop.peak_id} className="relative">
+                    <Card className="p-4 bg-teal-900/30 border-teal-700/50 backdrop-blur-sm">
+                      {/* Stop Number Badge */}
+                      <div className="absolute -left-3 -top-3 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                        <span className="text-white font-bold text-sm">{stop.sequence}</span>
+                      </div>
+
+                      <div className="ml-3">
+                        {/* Location & Time */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-bold text-white mb-1">{stop.location}</h3>
+                            <div className="flex items-center gap-2 text-emerald-300 text-sm">
+                              <Clock className="w-4 h-4" />
+                              <span>Arrive: {stop.arrival_time} • Service: {stop.service_time_window}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-emerald-400">${stop.weather_adjusted_revenue}</p>
+                          </div>
+                        </div>
+
+                        {/* Weather & Details */}
+                        <div className="grid grid-cols-3 gap-3 mb-3">
+                          <div className="flex items-center gap-2">
+                            <WeatherIcon className="w-4 h-4 text-cyan-400" />
+                            <div>
+                              <p className="text-xs text-slate-400">Weather</p>
+                              <p className="text-xs font-semibold text-white">{stop.weather_conditions.split(',')[0]}</p>
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-400">Wait Time</p>
+                            <p className="text-sm font-semibold text-white">{stop.estimated_wait_minutes} min</p>
+                          </div>
+                          {!isLast && (
+                            <div>
+                              <p className="text-xs text-slate-400">Next Stop</p>
+                              <p className="text-sm font-semibold text-white">{stop.travel_to_next_minutes} min</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Reasoning */}
+                        <div className="p-2 bg-teal-800/30 rounded-lg">
+                          <p className="text-xs text-emerald-200">{stop.reasoning}</p>
+                        </div>
+                      </div>
+                    </Card>
+
+                    {/* Connector Line */}
+                    {!isLast && (
+                      <div className="flex items-center gap-2 py-2 pl-4">
+                        <div className="w-0.5 h-8 bg-emerald-500/50"></div>
+                        <div className="flex items-center gap-2 text-emerald-400 text-xs">
+                          <Navigation className="w-3 h-3" />
+                          <span>{stop.travel_to_next_minutes} min drive</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Strategy Insights */}
+            <Card className="p-4 bg-cyan-900/20 border-cyan-700/50">
+              <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-cyan-400" />
+                Strategy Insights
+              </h3>
+              
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-cyan-300 font-semibold mb-1">Weather Strategy</p>
+                  <p className="text-sm text-white">{routeData.orchestrator_response.weather_strategy}</p>
+                </div>
+                
+                <div>
+                  <p className="text-xs text-cyan-300 font-semibold mb-1">Execution Plan</p>
+                  <p className="text-sm text-white">{routeData.orchestrator_response.execution_strategy}</p>
+                </div>
+
+                {routeData.orchestrator_response.risk_assessment && 
+                 routeData.orchestrator_response.risk_assessment !== "No significant risks identified due to good weather conditions throughout the route." && (
+                  <div className="p-3 bg-yellow-900/20 border border-yellow-700/50 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-yellow-300 font-semibold mb-1">Risk Assessment</p>
+                        <p className="text-sm text-yellow-100">{routeData.orchestrator_response.risk_assessment}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* Rejected Opportunities */}
+            {routeData.orchestrator_response.rejected_opportunities.length > 0 && (
+              <Card className="p-4 bg-slate-800/30 border-slate-700/50">
+                <h3 className="text-sm font-bold text-slate-300 mb-3">Opportunities Skipped</h3>
+                <div className="space-y-2">
+                  {routeData.orchestrator_response.rejected_opportunities.slice(0, 5).map((rejected, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">{rejected.reason}</span>
+                      <span className="text-slate-500">-${rejected.potential_revenue_lost}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Performance Metrics */}
+            <Card className="p-4 bg-emerald-900/20 border-emerald-700/50">
+              <h3 className="text-sm font-bold text-emerald-300 mb-3">Performance Metrics</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-slate-400">Efficiency Score</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-emerald-500" 
+                        style={{ width: `${routeData.orchestrator_response.summary.efficiency_score * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-bold text-emerald-400">
+                      {(routeData.orchestrator_response.summary.efficiency_score * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400">Confidence Level</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-cyan-500" 
+                        style={{ width: `${routeData.orchestrator_response.summary.confidence * 100}%` }}
+                      ></div>
+                    </div>
+                    <span className="text-sm font-bold text-cyan-400">
+                      {(routeData.orchestrator_response.summary.confidence * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </>
+        )}
       </div>
     </div>
   );
 };
 
-export default AICoach;
+export default RouteOptimizer;
