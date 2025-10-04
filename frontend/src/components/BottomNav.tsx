@@ -8,7 +8,7 @@ const BottomNav = () => {
     { path: "/", icon: Home, label: "Home" },
     { path: "/coach", icon: Brain, label: "AI Coach" },
     { path: "/earnings", icon: DollarSign, label: "Earnings" },
-    { path: "/airport", icon: Plane, label: "Airport" },
+    { path: "/hotspots", icon: Plane, label: "Hotspots" },
     { path: "/wellbeing", icon: Heart, label: "Wellbeing" },
   ];
 

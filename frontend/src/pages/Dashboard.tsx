@@ -120,7 +120,7 @@ const Dashboard = () => {
             const getIcon = (type: string) => {
               switch (type) {
                 case 'digital_twin': return <Brain className="w-5 h-5 text-white" />;
-                case 'airport': return <Plane className="w-5 h-5 text-secondary" />;
+                case 'hotspots': return <Plane className="w-5 h-5 text-secondary" />;
                 case 'wellbeing': return <Heart className="w-5 h-5 text-success" />;
                 default: return <Brain className="w-5 h-5 text-white" />;
               }
@@ -130,7 +130,7 @@ const Dashboard = () => {
               switch (type) {
                 case 'digital_twin': 
                   return "p-4 bg-gradient-ai border-primary/50 shadow-glow-ai animate-slide-up";
-                case 'airport': 
+                case 'hotspots': 
                   return "p-4 bg-card border-secondary/30 animate-slide-up";
                 case 'wellbeing': 
                   return "p-4 bg-card border-success/30 animate-slide-up";
@@ -143,7 +143,7 @@ const Dashboard = () => {
               switch (type) {
                 case 'digital_twin': 
                   return "w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0";
-                case 'airport': 
+                case 'hotspots': 
                   return "w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0";
                 case 'wellbeing': 
                   return "w-10 h-10 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0";
@@ -174,14 +174,14 @@ const Dashboard = () => {
                       {recommendation.message}
                     </p>
                     <div className={`flex items-center gap-2 text-xs ${recommendation.type === 'digital_twin' ? 'text-white/80' : 
-                      recommendation.type === 'airport' ? 'text-secondary' : 'text-success'}`}>
+                      recommendation.type === 'hotspots' ? 'text-secondary' : 'text-success'}`}>
                       {recommendation.type === 'digital_twin' && (
                         <>
                           <TrendingUp className="w-3 h-3" />
                           <span>Projected: ${recommendation.projected_earnings}/day</span>
                         </>
                       )}
-                      {recommendation.type === 'airport' && (
+                      {recommendation.type === 'hotspots' && (
                         <>
                           <Clock className="w-3 h-3" />
                           <span>{recommendation.peak_time}</span>

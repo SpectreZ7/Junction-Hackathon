@@ -33,13 +33,13 @@ The AI "shadow driver" that learns individual patterns and optimizes schedules:
   - *Weekend Warrior*
 - **Feasibility Scoring**: Realistic recommendations based on driver behavior
 
-### **Airport Intelligence Agent**
+### **Hotspots Intelligence Agent**
 Real-time flight data integration for demand prediction:
 
 - **Live Flight Arrivals**: Integration with aviation APIs
 - **Peak Time Predictions**: 45-minute advance notifications
 - **Expected Passenger Volume**: Data-driven demand forecasting
-- **Multi-Airport Support**: Major international airports covered
+- **Multi-Hotspot Support**: Major demand hotspots covered
 
 ### **Wellbeing Monitoring System**
 Comprehensive driver health and safety tracking:
@@ -68,7 +68,7 @@ frontend/
 │   │   ├── Dashboard.tsx   # Primary dashboard interface
 │   │   ├── AICoach.tsx     # AI recommendations
 │   │   ├── Earnings.tsx    # Financial analytics
-│   │   ├── Airport.tsx     # Airport intelligence
+│   │   ├── Hotspots.tsx    # Hotspots intelligence
 │   │   └── Wellbeing.tsx   # Health monitoring
 │   ├── lib/
 │   │   ├── api.ts          # Backend API integration
@@ -89,7 +89,7 @@ frontend/
 backend/
 ├── agents/                 # AI Agent Modules
 │   ├── digital_twin_agent.py      # Personal AI optimization
-│   ├── airport_agent.py           # Flight data integration
+│   ├── airport_agent.py           # Hotspot data integration
 │   ├── wellbeing_agent.py         # Health monitoring
 │   ├── driver_prioritization_agent.py  # Performance scoring
 │   └── rides_analysis_agent.py    # Data analytics
@@ -188,10 +188,10 @@ optimization = agent.simulate_optimal_week(profile)
 # Feasibility: 64.8% (highly achievable)
 ```
 
-### **2. Airport Intelligence**
+### **2. Hotspots Intelligence**
 ```python
 # Live flight data integration
-demand = await airport.get_live_demand("Amsterdam")
+demand = await hotspots.get_live_demand("Amsterdam")
 # Returns: Peak in 45 minutes, 12 arrivals expected
 ```
 
@@ -222,7 +222,7 @@ score = wellbeing.calculate_wellbeing_score(
 - **Driver E10156**: €74 → €572 weekly earnings (+€498/week)
 - **Average Improvement**: 300-600% earnings potential across drivers
 - **Wellbeing Scores**: Real-time health monitoring for 50+ drivers
-- **Airport Predictions**: 45-minute advance demand forecasting
+- **Hotspot Predictions**: 45-minute advance demand forecasting
 
 ## Future Roadmap
 

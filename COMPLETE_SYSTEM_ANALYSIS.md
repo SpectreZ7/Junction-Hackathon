@@ -62,15 +62,15 @@ This project implements a comprehensive AI-powered system for Uber drivers consi
 - Multi-dimensional reliability scoring
 - Safety incident penalties
 
-### 3. AIRPORT INTELLIGENCE AGENT
+### 3. HOTSPOTS INTELLIGENCE AGENT
 **File**: `agents/airport_agent.py`
 
-**Purpose**: Provides real-time airport demand predictions using live flight data and AI analysis.
+**Purpose**: Provides real-time hotspot demand predictions using live demand data and AI analysis.
 
 **Key Functionality**:
 - **Real-Time Flight Data**: Integrates with AviationStack API for live flight arrivals
 - **Demand Peak Detection**: Uses AI (Groq LLaMA model) to identify high-demand periods
-- **Multi-Airport Coverage**: Supports major airports in multiple cities:
+- **Multi-Hotspot Coverage**: Supports major hotspots in multiple cities:
   - New York (JFK, LGA, EWR)
   - Los Angeles (LAX, BUR, LGB)
   - Chicago (ORD, MDW)
@@ -89,7 +89,7 @@ This project implements a comprehensive AI-powered system for Uber drivers consi
 - Natural language processing for flight analysis
 - Peak detection algorithms
 - Revenue optimization calculations
-- Priority scoring for multiple airports
+- Priority scoring for multiple hotspots
 
 ### 4. WELLBEING AGENT
 **File**: `agents/wellbeing_agent.py`
@@ -155,7 +155,7 @@ The mobile app should be built as a **React Native** or **Flutter** application 
 ├── Dashboard (Home)
 ├── AI Coach (Digital Twin)
 ├── Earnings Optimizer
-├── Airport Intelligence
+├── Hotspots Intelligence
 ├── Wellbeing Monitor
 ├── Performance Analytics
 ├── Settings & Profile
@@ -176,7 +176,7 @@ The mobile app should be built as a **React Native** or **Flutter** application 
 
 - **AI Recommendations Panel**
   - Top recommendation from Digital Twin
-  - Current airport opportunities
+  - Current hotspot opportunities
   - Wellbeing alerts/suggestions
   - Priority score display
 
@@ -188,7 +188,7 @@ The mobile app should be built as a **React Native** or **Flutter** application 
 
 - **Smart Notifications**
   - Surge alerts in preferred zones
-  - Airport demand peaks
+  - Hotspot demand peaks
   - Break reminders based on wellbeing
   - Digital Twin schedule suggestions
 
@@ -256,14 +256,14 @@ The mobile app should be built as a **React Native** or **Flutter** application 
 - Voice announcements for recommendations
 - Offline mode for basic tracking
 
-#### 4. AIRPORT INTELLIGENCE SCREEN
+#### 4. HOTSPOTS INTELLIGENCE SCREEN
 
-**Purpose**: Airport-specific demand prediction and optimization
+**Purpose**: Hotspot-specific demand prediction and optimization
 
 **Main Interface**:
-- **Airport Selection**
-  - City-based airport list
-  - Distance and ETA to each airport
+- **Hotspot Selection**
+  - City-based hotspot list
+  - Distance and ETA to each hotspot
   - Current queue status estimates
   - Live flight arrival data
 
@@ -274,16 +274,16 @@ The mobile app should be built as a **React Native** or **Flutter** application 
   - Revenue per hour projections
 
 - **Smart Recommendations**
-  - Best airport to go to now
+  - Best hotspot to go to now
   - Optimal departure times
   - Queue position strategy
   - Alternative nearby opportunities
 
 **Advanced Features**:
-- Integration with airport apps
+- Integration with hotspot apps
 - Real-time traffic data
 - Weather impact analysis
-- Historical performance at each airport
+- Historical performance at each hotspot
 
 #### 5. WELLBEING MONITOR SCREEN
 
@@ -384,9 +384,9 @@ The mobile app should be built as a **React Native** or **Flutter** application 
 │   ├── GET /profile/{driver_id}
 │   ├── POST /optimize-schedule
 │   └── GET /recommendations
-├── /airport-intelligence/
+├── /hotspots-intelligence/
 │   ├── GET /live-demand/{city}
-│   ├── GET /flight-data/{airport}
+│   ├── GET /demand-data/{hotspot}
 │   └── GET /predictions
 ├── /wellbeing/
 │   ├── POST /check-in
@@ -582,7 +582,7 @@ The mobile app should be built as a **React Native** or **Flutter** application 
 
 ### PHASE 2: ADVANCED AI (6 months)
 - Full Digital Twin optimization scenarios
-- Airport Intelligence integration
+- Hotspots Intelligence integration
 - Advanced wellbeing interventions
 - Real-time recommendation engine
 

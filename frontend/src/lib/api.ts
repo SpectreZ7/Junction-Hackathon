@@ -1,7 +1,17 @@
 // API Service for Uber Driver AI Companion App
 // Connects frontend to the FastAPI backend
 
-const API_BASE_URL = 'http://localhost:8000/api/v1';
+// Dynamic API URL for network access
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    // In browser: use current host but port 8000
+    const host = window.location.hostname;
+    return `http://${host}:8000/api/v1`;
+  }
+  // Fallback for server-side rendering
+  return 'http://localhost:8000/api/v1';
+};
+const API_BASE_URL = getApiBaseUrl();
 
 interface DriverStatus {
   is_online: boolean;
@@ -114,7 +124,7 @@ interface WellbeingCheckIn {
   mood: number; // 1-5
 }
 
-interface AirportData {
+interface HotspotData {
   airport_code: string;
   airport_name: string;
   city: string;
@@ -210,10 +220,10 @@ class UberDriverAPI {
     });
   }
 
-  // Airport Intelligence APIs
-  async getAirportDemand(city: string): Promise<{
+  // Hotspots Intelligence APIs
+  async getHotspotDemand(city: string): Promise<{
     city: string;
-    airports: AirportData[];
+    airports: HotspotData[];
     last_updated: string;
     data_source: string;
   }> {
@@ -330,7 +340,7 @@ export type {
   EnhancedDigitalTwinProfile,
   OptimizationScenario,
   WellbeingCheckIn,
-  AirportData,
+  HotspotData,
   DriverListItem,
   DriversListResponse,
   DriverComparison,

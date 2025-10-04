@@ -76,8 +76,8 @@ async def get_dashboard_data(driver_id: str):
                     "improvement": 18
                 },
                 {
-                    "type": "airport",
-                    "title": "Airport Opportunity",
+                    "type": "hotspots",
+                    "title": "Hotspot Opportunity",
                     "message": "AMS peak in 45 minutes - 12 arrivals expected",
                     "peak_time": "45 minutes",
                     "expected_arrivals": 12

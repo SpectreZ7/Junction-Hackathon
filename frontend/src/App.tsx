@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import AICoach from "./pages/AICoach";
 import Earnings from "./pages/Earnings";
-import Airport from "./pages/Airport";
+import Hotspots from "./pages/Hotspots";
 import Wellbeing from "./pages/Wellbeing";
 import NotFound from "./pages/NotFound";
 import BottomNav from "./components/BottomNav";
@@ -29,7 +29,7 @@ const App = () => (
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/coach" element={<AICoach />} />
                   <Route path="/earnings" element={<Earnings />} />
-                  <Route path="/airport" element={<Airport />} />
+                  <Route path="/hotspots" element={<Hotspots />} />
                   <Route path="/wellbeing" element={<Wellbeing />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
