@@ -1,17 +1,7 @@
 // API Service for Uber Driver AI Companion App
 // Connects frontend to the FastAPI backend
 
-// Dynamic API URL for network access
-const getApiBaseUrl = () => {
-  if (typeof window !== 'undefined') {
-    // In browser: use current host but port 8000
-    const host = window.location.hostname;
-    return `http://${host}:8000/api/v1`;
-  }
-  // Fallback for server-side rendering
-  return 'http://localhost:8000/api/v1';
-};
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = 'http://localhost:8000/api/v1';
 
 interface DriverStatus {
   is_online: boolean;
