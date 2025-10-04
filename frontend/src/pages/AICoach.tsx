@@ -127,8 +127,7 @@ const AICoach: React.FC = () => {
               <Brain className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">🤖 AI Digital Twin</h1>
-              <p className="text-xs text-muted-foreground">Your AI optimization coach</p>
+              <h1 className="text-xl font-bold text-foreground">Optimization</h1>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -144,9 +143,6 @@ const AICoach: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={loadDigitalTwinData} variant="outline" size="sm">
-              <RefreshCw className="w-3 h-3" />
-            </Button>
           </div>
         </div>
 
