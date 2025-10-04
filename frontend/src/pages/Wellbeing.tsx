@@ -1,16 +1,67 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Heart, Moon, Coffee, Activity, Phone } from "lucide-react";
-import { useState } from "react";
+import { Heart, Moon, Coffee, Activity, Phone, CheckCircle, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { uberDriverAPI, type WellbeingCheckIn } from "@/lib/api";
 
 const Wellbeing = () => {
-  const [mood, setMood] = useState([70]);
-  const [fatigue, setFatigue] = useState([40]);
-  const [stress, setStress] = useState([50]);
-  const [sleep, setSleep] = useState([6]);
+  const [mood, setMood] = useState([4]); // 1-5 scale
+  const [fatigue, setFatigue] = useState([2]); // 1-5 scale
+  const [stress, setStress] = useState([2]); // 1-5 scale
+  const [bodyDiscomfort, setBodyDiscomfort] = useState([2]); // 1-5 scale
+  const [sleep, setSleep] = useState([7]); // hours
+  const [wellbeingScore, setWellbeingScore] = useState(85);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [lastCheckIn, setLastCheckIn] = useState<string | null>(null);
 
-  const wellbeingScore = Math.round((mood[0] + (100 - fatigue[0]) + (100 - stress[0]) + (sleep[0] / 10) * 100) / 4);
+  const driverId = "E10156";
+
+  useEffect(() => {
+    const fetchWellbeingStatus = async () => {
+      try {
+        const status = await uberDriverAPI.getWellbeingStatus(driverId);
+        setWellbeingScore(status.current_score);
+        setSuggestions(status.recommendations);
+        setLastCheckIn(status.last_checkin);
+      } catch (err) {
+        console.error('Failed to fetch wellbeing status:', err);
+      }
+    };
+
+    fetchWellbeingStatus();
+  }, [driverId]);
+
+  const handleCheckIn = async () => {
+    try {
+      setLoading(true);
+      
+      const checkInData: WellbeingCheckIn = {
+        driver_id: driverId,
+        sleep_hours: sleep[0],
+        fatigue_level: fatigue[0],
+        stress_level: stress[0],
+        body_discomfort: bodyDiscomfort[0],
+        mood: mood[0]
+      };
+
+      const response = await uberDriverAPI.submitWellbeingCheckIn(checkInData);
+      
+      setWellbeingScore(response.wellbeing_score);
+      setSuggestions(response.suggestions);
+      setLastCheckIn(new Date().toISOString());
+
+      // Show success feedback
+      alert(`Check-in successful! Wellbeing score: ${response.wellbeing_score}`);
+      
+    } catch (err) {
+      console.error('Check-in failed:', err);
+      alert('Failed to submit check-in. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-success";
@@ -45,6 +96,18 @@ const Wellbeing = () => {
           </div>
         </Card>
 
+        {/* Last Check-In Info */}
+        {lastCheckIn && (
+          <Card className="p-3 bg-muted/50 border-border">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-success" />
+              <p className="text-sm text-muted-foreground">
+                Last check-in: {new Date(lastCheckIn).toLocaleString()}
+              </p>
+            </div>
+          </Card>
+        )}
+
         {/* Quick Check-In */}
         <Card className="p-4 bg-card border-border">
           <h3 className="text-sm font-semibold text-foreground mb-4">Quick Check-In</h3>
@@ -52,44 +115,78 @@ const Wellbeing = () => {
           <div className="space-y-5">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Mood</span>
-                <span className="text-sm font-medium text-foreground">{mood[0]}%</span>
+                <span className="text-sm text-muted-foreground">Mood (1-5)</span>
+                <span className="text-sm font-medium text-foreground">{mood[0]}</span>
               </div>
               <Slider
                 value={mood}
                 onValueChange={setMood}
-                max={100}
+                max={5}
+                min={1}
                 step={1}
                 className="w-full"
               />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>Poor</span>
+                <span>Excellent</span>
+              </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Fatigue Level</span>
-                <span className="text-sm font-medium text-foreground">{fatigue[0]}%</span>
+                <span className="text-sm text-muted-foreground">Fatigue Level (1-5)</span>
+                <span className="text-sm font-medium text-foreground">{fatigue[0]}</span>
               </div>
               <Slider
                 value={fatigue}
                 onValueChange={setFatigue}
-                max={100}
+                max={5}
+                min={1}
                 step={1}
                 className="w-full"
               />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>Alert</span>
+                <span>Exhausted</span>
+              </div>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-muted-foreground">Stress Level</span>
-                <span className="text-sm font-medium text-foreground">{stress[0]}%</span>
+                <span className="text-sm text-muted-foreground">Stress Level (1-5)</span>
+                <span className="text-sm font-medium text-foreground">{stress[0]}</span>
               </div>
               <Slider
                 value={stress}
                 onValueChange={setStress}
-                max={100}
+                max={5}
+                min={1}
                 step={1}
                 className="w-full"
               />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>Relaxed</span>
+                <span>Very Stressed</span>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-muted-foreground">Body Discomfort (1-5)</span>
+                <span className="text-sm font-medium text-foreground">{bodyDiscomfort[0]}</span>
+              </div>
+              <Slider
+                value={bodyDiscomfort}
+                onValueChange={setBodyDiscomfort}
+                max={5}
+                min={1}
+                step={1}
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>Comfortable</span>
+                <span>Very Uncomfortable</span>
+              </div>
             </div>
 
             <div>
@@ -101,14 +198,26 @@ const Wellbeing = () => {
                 value={sleep}
                 onValueChange={setSleep}
                 max={12}
+                min={3}
                 step={0.5}
                 className="w-full"
               />
             </div>
           </div>
 
-          <Button className="w-full mt-4 bg-success hover:bg-success/90">
-            Save Check-In
+          <Button 
+            onClick={handleCheckIn}
+            disabled={loading}
+            className="w-full mt-4 bg-success hover:bg-success/90"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Processing...
+              </>
+            ) : (
+              'Save Check-In'
+            )}
           </Button>
         </Card>
 
@@ -154,41 +263,44 @@ const Wellbeing = () => {
 
         {/* Smart Recommendations */}
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold text-foreground">Recommendations</h2>
+          <h2 className="text-lg font-semibold text-foreground">AI Recommendations</h2>
           
-          <Card className="p-4 bg-card border-success/30">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
-                <Coffee className="w-5 h-5 text-success" />
+          {suggestions.map((suggestion, index) => (
+            <Card key={index} className="p-4 bg-card border-success/30">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
+                  {index === 0 ? <Coffee className="w-5 h-5 text-success" /> : 
+                   index === 1 ? <Activity className="w-5 h-5 text-secondary" /> :
+                   <Heart className="w-5 h-5 text-primary" />}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-foreground mb-1">Wellbeing Tip</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    {suggestion}
+                  </p>
+                  <Button size="sm" variant="outline" className="border-success text-success hover:bg-success/10">
+                    Apply Suggestion
+                  </Button>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-foreground mb-1">Take a Break Soon</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  You've been driving for 2.5 hours. A 10-minute break will improve focus and safety.
-                </p>
-                <Button size="sm" variant="outline" className="border-success text-success hover:bg-success/10">
-                  Start Break Timer
-                </Button>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          ))}
 
-          <Card className="p-4 bg-card border-border">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center flex-shrink-0">
-                <Activity className="w-5 h-5 text-secondary" />
+          {suggestions.length === 0 && (
+            <Card className="p-4 bg-card border-success/30">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
+                  <Heart className="w-5 h-5 text-success" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground mb-1">Keep up the good work!</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Your wellbeing is on track. Complete a check-in to get personalized recommendations.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-foreground mb-1">Quick Stretch Exercise</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  5-minute guided stretching to reduce back tension
-                </p>
-                <Button size="sm" variant="outline" className="border-secondary text-secondary hover:bg-secondary/10">
-                  Start Exercise
-                </Button>
-              </div>
-            </div>
-          </Card>
+            </Card>
+          )}
         </div>
 
         {/* Emergency Contact */}

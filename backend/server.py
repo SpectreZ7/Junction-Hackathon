@@ -19,15 +19,39 @@ from datetime import datetime, timedelta
 import logging
 
 # Add agents to path
-sys.path.append('agents')
-sys.path.append('agents/data_analysis')
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(current_dir, 'agents'))
+sys.path.append(os.path.join(current_dir, 'agents', 'data_analysis'))
 
-# Import all our AI agents
-from digital_twin_agent import DigitalTwinAgent
-from rides_analysis_agent import analyze_driver, get_driver_summary, create_digital_twin, data
-from driver_prioritization_agent import DriverPrioritizationAgent
-from airport_agent import AirportAgent
-from wellbeing_agent import WellbeingAgent, WellbeingConfig
+# Import all our AI agents with error handling
+try:
+    from digital_twin_agent import DigitalTwinAgent
+    from rides_analysis_agent import analyze_driver, get_driver_summary, create_digital_twin, data
+    from driver_prioritization_agent import DriverPrioritizationAgent
+    from airport_agent import AirportAgent
+    from wellbeing_agent import WellbeingAgent, WellbeingConfig
+    
+    # Initialize AI agents
+    digital_twin = DigitalTwinAgent()
+    prioritization = DriverPrioritizationAgent()
+    airport = AirportAgent()
+    wellbeing = WellbeingAgent()
+    
+    AGENTS_AVAILABLE = True
+    logger.info("All AI agents loaded successfully!")
+    
+except ImportError as e:
+    logger.warning(f"Could not import AI agents: {e}")
+    logger.warning("Running in mock mode - using sample data")
+    
+    # Mock data for testing
+    data = None
+    digital_twin = None
+    prioritization = None
+    airport = None
+    wellbeing = None
+    
+    AGENTS_AVAILABLE = False
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -51,11 +75,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize AI agents
-digital_twin = DigitalTwinAgent()
-prioritization = DriverPrioritizationAgent()
-airport = AirportAgent()
-wellbeing = WellbeingAgent()
+# Agents initialized above in try-except block
 
 # ============================================================================
 # PYDANTIC MODELS FOR API REQUEST/RESPONSE
@@ -117,25 +137,35 @@ async def get_dashboard_data(driver_id: str):
         hours_worked = total_rides_today * 0.5  # Estimate based on rides
         
         # Get Digital Twin recommendations
-        try:
-            profile = digital_twin.learn_driver_patterns(driver_id)
-            optimization = digital_twin.simulate_optimal_week(profile)
-            best_scenario = optimization['best_scenario']
+        if AGENTS_AVAILABLE and digital_twin:
+            try:
+                profile = digital_twin.learn_driver_patterns(driver_id)
+                optimization = digital_twin.simulate_optimal_week(profile)
+                best_scenario = optimization['best_scenario']
+                ai_recommendation = {
+                    "type": "digital_twin",
+                    "title": f"{best_scenario} Strategy",
+                    "message": f"Switch to {best_scenario} for {optimization['scenarios'][best_scenario]['improvement']:.0f}% earnings boost",
+                    "projected_earnings": optimization['scenarios'][best_scenario]['projected_weekly_earnings'],
+                    "improvement": optimization['scenarios'][best_scenario]['improvement']
+                }
+            except Exception as e:
+                logger.warning(f"Digital Twin error for {driver_id}: {e}")
+                ai_recommendation = {
+                    "type": "digital_twin",
+                    "title": "Digital Twin Loading",
+                    "message": "Analyzing your patterns...",
+                    "projected_earnings": 0,
+                    "improvement": 0
+                }
+        else:
+            # Mock AI recommendation
             ai_recommendation = {
                 "type": "digital_twin",
-                "title": f"{best_scenario} Strategy",
-                "message": f"Switch to {best_scenario} for {optimization['scenarios'][best_scenario]['improvement']:.0f}% earnings boost",
-                "projected_earnings": optimization['scenarios'][best_scenario]['projected_weekly_earnings'],
-                "improvement": optimization['scenarios'][best_scenario]['improvement']
-            }
-        except Exception as e:
-            logger.warning(f"Digital Twin error for {driver_id}: {e}")
-            ai_recommendation = {
-                "type": "digital_twin",
-                "title": "Digital Twin Loading",
-                "message": "Analyzing your patterns...",
-                "projected_earnings": 0,
-                "improvement": 0
+                "title": "Early Bird Strategy",
+                "message": "Switch to Early Bird for 18% earnings boost",
+                "projected_earnings": 312,
+                "improvement": 18
             }
         
         # Get airport opportunities

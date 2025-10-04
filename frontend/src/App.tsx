@@ -19,16 +19,24 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <div className="relative">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/coach" element={<AICoach />} />
-            <Route path="/earnings" element={<Earnings />} />
-            <Route path="/airport" element={<Airport />} />
-            <Route path="/wellbeing" element={<Wellbeing />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <BottomNav />
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+          {/* Phone Mockup Container */}
+          <div className="phone-mockup">
+            <div className="phone-screen">
+              <div className="phone-notch"></div>
+              <div className="relative pt-6">
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/coach" element={<AICoach />} />
+                  <Route path="/earnings" element={<Earnings />} />
+                  <Route path="/airport" element={<Airport />} />
+                  <Route path="/wellbeing" element={<Wellbeing />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                <BottomNav />
+              </div>
+            </div>
+          </div>
         </div>
       </BrowserRouter>
     </TooltipProvider>
