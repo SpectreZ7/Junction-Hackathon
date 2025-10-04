@@ -1,3 +1,5 @@
 .env
 __pycache__/
 *.pycfrontend/node_modules/
+*.pyc
+.DS_Store
