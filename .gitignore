@@ -1,5 +1,28 @@
 .env
 __pycache__/
-*.pycfrontend/node_modules/
 *.pyc
 .DS_Store
+
+# Node.js dependencies
+node_modules/
+frontend/node_modules/
+
+# Python virtual environment
+venv/
+env/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Logs
+*.log
+logs/

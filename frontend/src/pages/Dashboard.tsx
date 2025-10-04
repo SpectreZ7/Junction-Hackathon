@@ -1,32 +1,57 @@
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
-import { Brain, TrendingUp, Plane, Heart, Star, Clock, Target, Loader2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Brain, TrendingUp, Plane, Heart, Star, Clock, Target, Loader2, DollarSign, User } from "lucide-react";
 import { useState, useEffect } from "react";
-import { uberDriverAPI, type DashboardData } from "@/lib/api";
+import { uberDriverAPI, type DashboardData, type DriverTargetIncome } from "@/lib/api";
 
 const Dashboard = () => {
   const [isOnline, setIsOnline] = useState(true);
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [targetIncomeData, setTargetIncomeData] = useState<DriverTargetIncome | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDriverId, setSelectedDriverId] = useState("E10156"); // Default driver ID
+  const [availableDrivers, setAvailableDrivers] = useState<DriverTargetIncome[]>([]);
 
-  const driverId = "E10156"; // Default driver ID
+  const driverId = selectedDriverId;
+
+  // Load available drivers on component mount
+  useEffect(() => {
+    const loadAvailableDrivers = async () => {
+      try {
+        const response = await uberDriverAPI.getAllDriverTargetIncome();
+        setAvailableDrivers(response.drivers);
+      } catch (err) {
+        console.error('Failed to load available drivers:', err);
+      }
+    };
+    
+    loadAvailableDrivers();
+  }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
-        const data = await uberDriverAPI.getDashboardData(driverId);
+        
+        // Fetch both dashboard data and target income data in parallel
+        const [dashboardResponse, targetIncomeResponse] = await Promise.all([
+          uberDriverAPI.getDashboardData(driverId),
+          uberDriverAPI.getDriverTargetIncome(driverId).catch(() => null) // Don't fail if target income fails
+        ]);
         
         // Check for updated wellbeing score in localStorage
         const storedWellbeingScore = localStorage.getItem('wellbeingScore');
         if (storedWellbeingScore) {
           // Update the wellbeing score in the dashboard data
-          data.status.wellbeing_score = parseFloat(storedWellbeingScore);
+          dashboardResponse.status.wellbeing_score = parseFloat(storedWellbeingScore);
         }
         
-        setDashboardData(data);
-        setIsOnline(data.status.is_online);
+        setDashboardData(dashboardResponse);
+        setTargetIncomeData(targetIncomeResponse);
+        setIsOnline(dashboardResponse.status.is_online);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
         console.error('Dashboard data fetch error:', err);
@@ -71,12 +96,36 @@ const Dashboard = () => {
         <div className="flex items-center justify-between pt-2">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-            <p className="text-sm text-muted-foreground">Welcome back, Driver {dashboardData.driver_id}</p>
+            <p className="text-sm text-muted-foreground">
+              {targetIncomeData ? `Welcome back, ${targetIncomeData.driver_name}` : `Welcome back, Driver ${dashboardData.driver_id}`}
+            </p>
           </div>
           <div className="w-12 h-12 rounded-full bg-gradient-ai flex items-center justify-center text-white font-bold">
-            E
+            {targetIncomeData ? targetIncomeData.driver_name.charAt(0) : 'E'}
           </div>
         </div>
+
+        {/* Driver Selector */}
+        {availableDrivers.length > 0 && (
+          <Card className="p-3 bg-card border-border">
+            <div className="flex items-center gap-3">
+              <User className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium text-foreground">Switch Driver:</span>
+              <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Select driver" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableDrivers.map((driver) => (
+                    <SelectItem key={driver.driver_id} value={driver.driver_id}>
+                      {driver.driver_name} ({driver.driver_id}) - ${driver.target_daily_income}/day
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </Card>
+        )}
 
         {/* Status Card */}
         <Card className="p-5 bg-card border-border animate-fade-in">
@@ -89,6 +138,45 @@ const Dashboard = () => {
             </div>
             <Switch checked={isOnline} onCheckedChange={setIsOnline} />
           </div>
+          
+          {/* Target Income Progress */}
+          {targetIncomeData && (
+            <div className="mb-4 p-3 bg-gradient-to-r from-secondary/10 to-primary/10 rounded-lg border border-secondary/20">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-secondary" />
+                  <span className="text-sm font-medium text-foreground">Daily Target</span>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  ${dashboardData.status.earnings_today} / ${targetIncomeData.target_daily_income}
+                </span>
+              </div>
+              <Progress 
+                value={Math.min((dashboardData.status.earnings_today / targetIncomeData.target_daily_income) * 100, 100)} 
+                className="h-2 mb-2"
+              />
+              <div className="flex items-center justify-between text-xs">
+                <span className={`font-medium ${
+                  dashboardData.status.earnings_today >= targetIncomeData.target_daily_income 
+                    ? 'text-success' 
+                    : dashboardData.status.earnings_today >= targetIncomeData.target_daily_income * 0.8
+                    ? 'text-warning'
+                    : 'text-muted-foreground'
+                }`}>
+                  {dashboardData.status.earnings_today >= targetIncomeData.target_daily_income 
+                    ? '🎯 Target Achieved!' 
+                    : `${Math.round((dashboardData.status.earnings_today / targetIncomeData.target_daily_income) * 100)}% Complete`
+                  }
+                </span>
+                <span className="text-muted-foreground">
+                  {targetIncomeData.target_daily_income - dashboardData.status.earnings_today > 0 
+                    ? `$${(targetIncomeData.target_daily_income - dashboardData.status.earnings_today).toFixed(0)} to go`
+                    : 'Target exceeded!'
+                  }
+                </span>
+              </div>
+            </div>
+          )}
           
           <div className="grid grid-cols-3 gap-4 mt-4">
             <div className="text-center">

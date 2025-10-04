@@ -6,6 +6,9 @@ const API_BASE_URL = 'http://localhost:8000/api/v1';
 interface DriverStatus {
   is_online: boolean;
   earnings_today: number;
+  target_earnings_today?: number;
+  earnings_progress?: number;
+  income_goal_status?: string;
   hours_worked: number;
   wellbeing_score: number;
 }
@@ -112,6 +115,21 @@ interface WellbeingCheckIn {
   stress_level: number;   // 1-5
   body_discomfort: number; // 1-5
   mood: number; // 1-5
+}
+
+interface DriverTargetIncome {
+  driver_id: string;
+  driver_name: string;
+  target_daily_income: number;
+  current_daily_income: number;
+  income_goal_status: string;
+  target_weekly_income: number;
+  target_monthly_income: number;
+  performance_tier: string;
+  city: string;
+  experience_years: number;
+  vehicle_type: string;
+  specializations: string[];
 }
 
 interface HotspotData {
@@ -297,6 +315,25 @@ class UberDriverAPI {
     return this.fetchAPI('/drivers');
   }
 
+  // Target Income APIs
+  async getAllDriverTargetIncome(): Promise<{
+    drivers: DriverTargetIncome[];
+    summary: {
+      total_drivers: number;
+      average_target_daily: number;
+      average_current_daily: number;
+      performance_distribution: Record<string, number>;
+      income_goal_achievement_rate: number;
+      last_updated: string;
+    };
+  }> {
+    return this.fetchAPI('/drivers/target-income');
+  }
+
+  async getDriverTargetIncome(driverId: string): Promise<DriverTargetIncome> {
+    return this.fetchAPI(`/drivers/${driverId}/target-income`);
+  }
+
   // Health Check APIs
   async healthCheck(): Promise<{
     status: string;
@@ -330,6 +367,7 @@ export type {
   EnhancedDigitalTwinProfile,
   OptimizationScenario,
   WellbeingCheckIn,
+  DriverTargetIncome,
   HotspotData,
   DriverListItem,
   DriversListResponse,
