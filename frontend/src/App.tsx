@@ -1,0 +1,46 @@
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Dashboard from "./pages/Dashboard";
+import AICoach from "./pages/AICoach";
+import Earnings from "./pages/Earnings";
+import Hotspots from "./pages/Hotspots";
+import Wellbeing from "./pages/Wellbeing";
+import NotFound from "./pages/NotFound";
+import BottomNav from "./components/BottomNav";
+
+const queryClient = new QueryClient();
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+          {/* Phone Mockup Container */}
+          <div className="phone-mockup">
+            <div className="phone-screen relative flex flex-col">
+              <div className="phone-notch"></div>
+              <div className="flex-1 pt-6 overflow-y-auto scrollbar-hide">
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/coach" element={<AICoach />} />
+                  <Route path="/earnings" element={<Earnings />} />
+                  <Route path="/hotspots" element={<Hotspots />} />
+                  <Route path="/wellbeing" element={<Wellbeing />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </div>
+              <BottomNav />
+            </div>
+          </div>
+        </div>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
+
+export default App;
