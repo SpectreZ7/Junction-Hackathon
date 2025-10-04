@@ -152,3 +152,21 @@ Switch to the 'surge_optimizer' strategy for €497.91 more per week!
 
 ✨ Analysis complete! Key takeaways:
 🚀 MAJOR optimization opportunity found!
+
+
+
+---
+
+🔍 Testing with driver E10057 (2nd most active)...
+Driver Profile Summary:
+  Preferred hours: [8, 20, 23, 7, 13]
+  Peak days: ['Sunday', 'Tuesday', 'Monday']
+  Avg earnings/hour: €25.14
+  Surge response: 0.39
+  Consistency: 0.13
+
+Optimization Results:
+  Best strategy: surge_optimizer
+  Current: €70.94/week
+  Optimized: €690.49/week
+  Improvement: +873.3%
