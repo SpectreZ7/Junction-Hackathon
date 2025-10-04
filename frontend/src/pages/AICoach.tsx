@@ -147,11 +147,11 @@ const AICoach: React.FC = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-muted text-xs">
+          <TabsList className="grid w-full grid-cols-3 bg-muted text-xs">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="scenarios">Scenarios</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="compare">Compare</TabsTrigger>
+            {/* <TabsTrigger value="compare">Compare</TabsTrigger> */}
           </TabsList>
 
           {/* Overview Tab */}
@@ -418,7 +418,8 @@ const AICoach: React.FC = () => {
             )}
           </TabsContent>
 
-          {/* Compare Tab */}
+          {/* Compare Tab - Commented Out */}
+          {/* 
           <TabsContent value="compare" className="space-y-4 mt-4">
             <Card className="bg-card border-border">
               <CardHeader className="pb-3">
@@ -489,6 +490,7 @@ const AICoach: React.FC = () => {
               </CardContent>
             </Card>
           </TabsContent>
+          */}
         </Tabs>
       </div>
     </div>
