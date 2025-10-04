@@ -58,12 +58,29 @@ class WellbeingCheckIn(BaseModel):
 async def get_dashboard_data(driver_id: str):
     """Get comprehensive dashboard data for a driver"""
     try:
-        # Mock data for demo
+        # Get target income data for this driver
+        import json
+        target_income_data = None
+        try:
+            with open("driver_target_income.json", "r") as f:
+                data = json.load(f)
+            target_income_data = next((d for d in data["drivers"] if d["driver_id"] == driver_id), None)
+        except FileNotFoundError:
+            pass
+        
+        # Mock data for demo with target income integration
+        current_earnings = target_income_data["current_daily_income"] if target_income_data else 248.50
+        target_earnings = target_income_data["target_daily_income"] if target_income_data else 280
+        goal_status = target_income_data["income_goal_status"] if target_income_data else "achieved"
+        
         return {
             "driver_id": driver_id,
             "status": {
                 "is_online": True,
-                "earnings_today": 248.50,
+                "earnings_today": current_earnings,
+                "target_earnings_today": target_earnings,
+                "earnings_progress": round((current_earnings / target_earnings) * 100, 1),
+                "income_goal_status": goal_status,
                 "hours_worked": 6.5,
                 "wellbeing_score": 85
             },
@@ -547,6 +564,75 @@ async def get_all_drivers():
         ],
         "total_count": 5
     }
+
+@app.get("/api/v1/drivers/target-income")
+async def get_all_driver_target_income():
+    """Get target income data for all drivers"""
+    import json
+    try:
+        with open("driver_target_income.json", "r") as f:
+            data = json.load(f)
+        return data
+    except FileNotFoundError:
+        # Fallback to mock data if file not found
+        return {
+            "drivers": [
+                {
+                    "driver_id": "E10156",
+                    "driver_name": "Marcus Chen",
+                    "target_daily_income": 280,
+                    "current_daily_income": 248.50,
+                    "income_goal_status": "achieved",
+                    "target_weekly_income": 1960,
+                    "target_monthly_income": 7840,
+                    "performance_tier": "top_performer",
+                    "city": "Amsterdam",
+                    "experience_years": 3.5,
+                    "vehicle_type": "Premium Sedan",
+                    "specializations": ["airport_runs", "surge_hours", "weekend_shifts"]
+                }
+            ],
+            "summary": {
+                "total_drivers": 1,
+                "average_target_daily": 280,
+                "average_current_daily": 248.50,
+                "performance_distribution": {"top_performer": 1},
+                "income_goal_achievement_rate": 100,
+                "last_updated": datetime.now().isoformat()
+            }
+        }
+
+@app.get("/api/v1/drivers/{driver_id}/target-income")
+async def get_driver_target_income(driver_id: str):
+    """Get target income data for a specific driver"""
+    import json
+    try:
+        with open("driver_target_income.json", "r") as f:
+            data = json.load(f)
+        
+        # Find the specific driver
+        driver_data = next((d for d in data["drivers"] if d["driver_id"] == driver_id), None)
+        if driver_data:
+            return driver_data
+        else:
+            raise HTTPException(status_code=404, detail=f"Driver {driver_id} not found")
+    except FileNotFoundError:
+        # Fallback mock data
+        mock_driver = {
+            "driver_id": driver_id,
+            "driver_name": f"Driver {driver_id}",
+            "target_daily_income": 250,
+            "current_daily_income": 230.50,
+            "income_goal_status": "achieved",
+            "target_weekly_income": 1750,
+            "target_monthly_income": 7000,
+            "performance_tier": "high_performer",
+            "city": "Amsterdam",
+            "experience_years": 3.0,
+            "vehicle_type": "Standard Sedan",
+            "specializations": ["business_district", "evening_shifts"]
+        }
+        return mock_driver
 
 # ============================================================================
 # HEALTH CHECK ENDPOINTS

@@ -25,11 +25,11 @@ sys.path.append(os.path.join(current_dir, 'agents', 'data_analysis'))
 
 # Import all our AI agents with error handling
 try:
-    from digital_twin_agent import DigitalTwinAgent
+    from backend.agents.digital_twin_agent import DigitalTwinAgent
     from rides_analysis_agent import analyze_driver, get_driver_summary, create_digital_twin, data
-    from driver_prioritization_agent import DriverPrioritizationAgent
-    from airport_agent import AirportAgent
-    from wellbeing_agent import WellbeingAgent, WellbeingConfig
+    from backend.agents.driver_prioritization_agent import DriverPrioritizationAgent
+    from backend.agents.airport_agent import AirportAgent
+    from backend.agents.wellbeing_agent import WellbeingAgent, WellbeingConfig
     
     # Initialize AI agents
     digital_twin = DigitalTwinAgent()
