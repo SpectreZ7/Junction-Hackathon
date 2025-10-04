@@ -424,7 +424,7 @@ const AICoach: React.FC = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center space-x-2 text-sm">
                   <Users className="w-4 h-4 text-indigo-500" />
-                  <span>Driver Comparison</span>
+                  <span>Compare with other anonymous drivers</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
