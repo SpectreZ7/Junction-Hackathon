@@ -134,7 +134,7 @@ def create_digital_twin(driver_id: str):
         sys.path.append(os.path.dirname(os.path.abspath(__file__)))
         from digital_twin_agent import DigitalTwinAgent
         
-        print(f"🤖 Creating Digital Twin for {driver_id}...")
+        print(f"Creating Digital Twin for {driver_id}...")
         agent = DigitalTwinAgent()
         
         # Learn patterns
@@ -150,10 +150,10 @@ def create_digital_twin(driver_id: str):
         return profile, optimization
         
     except ImportError as e:
-        print(f"❌ Digital Twin Agent not available: {e}")
+        print(f"ERROR: Digital Twin Agent not available: {e}")
         print("Make sure digital_twin_agent.py is in the same directory.")
     except Exception as e:
-        print(f"❌ Error creating Digital Twin: {e}")
+        print(f"ERROR: Error creating Digital Twin: {e}")
 
 # Example usage
 if __name__ == "__main__":
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     analyze_driver(driver_id)
     
     print("\n" + "="*60 + "\n")
-    print("🤖 DIGITAL TWIN AVAILABLE!")
+    print("DIGITAL TWIN AVAILABLE!")
     print("To create AI shadow driver, call: create_digital_twin('DRIVER_ID')")
     print(f"Example: create_digital_twin('{driver_id}')")
     print("\n" + "="*60 + "\n")

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Driver Prioritization Agent 🎯
+Driver Prioritization Agent
 
 Implements an intelligent driver prioritization system using Experience-Aware Rating (EAR)
 and multiple reliability/engagement factors to match the best drivers to ride requests.
