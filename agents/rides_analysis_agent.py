@@ -126,6 +126,35 @@ def peak_hours(data, driver_id):
     else:
         return None
 
+def create_digital_twin(driver_id: str):
+    """Create and run Digital Twin analysis for a driver"""
+    try:
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        from digital_twin_agent import DigitalTwinAgent
+        
+        print(f"🤖 Creating Digital Twin for {driver_id}...")
+        agent = DigitalTwinAgent()
+        
+        # Learn patterns
+        profile = agent.learn_driver_patterns(driver_id)
+        
+        # Run optimization
+        optimization = agent.simulate_optimal_week(profile)
+        
+        # Display results
+        agent.visualize_driver_profile(profile)
+        agent.print_optimization_results(optimization)
+        
+        return profile, optimization
+        
+    except ImportError as e:
+        print(f"❌ Digital Twin Agent not available: {e}")
+        print("Make sure digital_twin_agent.py is in the same directory.")
+    except Exception as e:
+        print(f"❌ Error creating Digital Twin: {e}")
+
 # Example usage
 if __name__ == "__main__":
     # Show overview of available drivers
@@ -135,6 +164,10 @@ if __name__ == "__main__":
     # Analyze a specific driver
     analyze_driver(driver_id)
     
+    print("\n" + "="*60 + "\n")
+    print("🤖 DIGITAL TWIN AVAILABLE!")
+    print("To create AI shadow driver, call: create_digital_twin('DRIVER_ID')")
+    print(f"Example: create_digital_twin('{driver_id}')")
     print("\n" + "="*60 + "\n")
     print("To analyze a different driver, call: analyze_driver('DRIVER_ID')")
     print("Example: analyze_driver('E10152')")
