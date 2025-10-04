@@ -21,10 +21,31 @@ const Wellbeing = () => {
   useEffect(() => {
     const fetchWellbeingStatus = async () => {
       try {
+        // First check localStorage for updated score
+        const storedScore = localStorage.getItem('wellbeingScore');
+        const storedCheckIn = localStorage.getItem('lastWellbeingCheckIn');
+        
+        if (storedScore) {
+          setWellbeingScore(parseFloat(storedScore));
+        }
+        if (storedCheckIn) {
+          setLastCheckIn(storedCheckIn);
+        }
+
+        // Still fetch from API for suggestions and other data
         const status = await uberDriverAPI.getWellbeingStatus(driverId);
-        setWellbeingScore(status.current_score);
+        
+        // Only update score if no stored value exists
+        if (!storedScore) {
+          setWellbeingScore(status.current_score);
+        }
+        
         setSuggestions(status.recommendations);
-        setLastCheckIn(status.last_checkin);
+        
+        // Only update last check-in if no stored value exists
+        if (!storedCheckIn) {
+          setLastCheckIn(status.last_checkin);
+        }
       } catch (err) {
         console.error('Failed to fetch wellbeing status:', err);
       }
@@ -48,12 +69,16 @@ const Wellbeing = () => {
 
       const response = await uberDriverAPI.submitWellbeingCheckIn(checkInData);
       
+      // Update local state
       setWellbeingScore(response.wellbeing_score);
       setSuggestions(response.suggestions);
       setLastCheckIn(new Date().toISOString());
 
-      // Show success feedback
-      alert(`Check-in successful! Wellbeing score: ${response.wellbeing_score}`);
+      // Store in localStorage for persistence across pages
+      localStorage.setItem('wellbeingScore', response.wellbeing_score.toString());
+      localStorage.setItem('lastWellbeingCheckIn', new Date().toISOString());
+      
+      // No popup - just silent success
       
     } catch (err) {
       console.error('Check-in failed:', err);

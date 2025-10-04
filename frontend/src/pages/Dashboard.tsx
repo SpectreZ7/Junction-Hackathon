@@ -17,6 +17,14 @@ const Dashboard = () => {
       try {
         setLoading(true);
         const data = await uberDriverAPI.getDashboardData(driverId);
+        
+        // Check for updated wellbeing score in localStorage
+        const storedWellbeingScore = localStorage.getItem('wellbeingScore');
+        if (storedWellbeingScore) {
+          // Update the wellbeing score in the dashboard data
+          data.status.wellbeing_score = parseFloat(storedWellbeingScore);
+        }
+        
         setDashboardData(data);
         setIsOnline(data.status.is_online);
       } catch (err) {
