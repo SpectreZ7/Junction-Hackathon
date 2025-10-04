@@ -24,7 +24,7 @@ const App = () => (
           <div className="phone-mockup">
             <div className="phone-screen relative flex flex-col">
               <div className="phone-notch"></div>
-              <div className="flex-1 pt-6 overflow-y-auto">
+              <div className="flex-1 pt-6 overflow-y-auto scrollbar-hide">
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/coach" element={<AICoach />} />

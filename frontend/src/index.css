@@ -95,6 +95,16 @@ All colors MUST be HSL.
     background: var(--gradient-bg);
   }
   
+  /* Hide scrollbar but keep scrolling functionality */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
   .phone-notch {
     @apply absolute top-0 left-1/2 transform -translate-x-1/2 bg-black rounded-b-xl;
     width: 150px;
