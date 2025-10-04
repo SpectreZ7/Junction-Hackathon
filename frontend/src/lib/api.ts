@@ -50,11 +50,59 @@ interface DigitalTwinProfile {
 
 interface OptimizationScenario {
   name: string;
+  display_name: string;
   projected_earnings: number;
   improvement: number;
   feasibility: number;
   description: string;
-  schedule: any;
+  schedule: Record<string, string>;
+  weekly_hours: number;
+  is_recommended: boolean;
+  confidence: string;
+  earnings_breakdown: {
+    base_fare: number;
+    surge_multiplier: number;
+  };
+}
+
+interface DriverListItem {
+  driver_id: string;
+  rides: number;
+  status: string;
+}
+
+interface DriversListResponse {
+  total_drivers: number;
+  top_drivers: DriverListItem[];
+  sample_ids: string[];
+}
+
+interface DriverComparison {
+  driver_id: string;
+  avg_earnings_per_hour: number;
+  surge_response: number;
+  consistency: number;
+  best_strategy: string;
+  current_weekly: number;
+  optimized_weekly: number;
+}
+
+interface DriverComparisonResponse {
+  comparison_date: string;
+  drivers: DriverComparison[];
+  insights: string[];
+}
+
+interface EnhancedDigitalTwinProfile extends DigitalTwinProfile {
+  ride_statistics: {
+    total_rides: number;
+    avg_ride_duration: number;
+    busiest_hour: string;
+    earnings_per_minute_all: number;
+    earnings_per_minute_long: number;
+    earnings_per_minute_short: number;
+  };
+  weekly_breakdown: Record<string, number>;
 }
 
 interface WellbeingCheckIn {
@@ -111,8 +159,10 @@ class UberDriverAPI {
   // Digital Twin APIs
   async getDigitalTwinProfile(driverId: string): Promise<{
     driver_id: string;
-    profile: DigitalTwinProfile;
+    profile: EnhancedDigitalTwinProfile;
     learning_status: string;
+    data_quality: string;
+    confidence_score: number;
     last_updated: string;
   }> {
     return this.fetchAPI(`/digital-twin/profile/${driverId}`);
@@ -123,14 +173,40 @@ class UberDriverAPI {
     current_performance: {
       weekly_earnings: number;
       weekly_hours: number;
+      weekly_rides: number;
+      avg_earnings_per_hour: number;
+      efficiency_score: number;
+    };
+    behavioral_profile: {
+      preferred_hours: number[];
+      peak_days: string[];
+      avg_earnings_per_hour: number;
+      surge_responsiveness: number;
+      fatigue_threshold: number;
+      consistency_score: number;
     };
     scenarios: OptimizationScenario[];
     best_scenario: string;
+    potential_increase: number;
+    key_insights: string[];
     analysis_date: string;
+    confidence_level: string;
+    data_points_analyzed: number;
   }> {
     return this.fetchAPI(`/digital-twin/optimize`, {
       method: 'POST',
       body: JSON.stringify({ driver_id: driverId }),
+    });
+  }
+
+  async getAvailableDrivers(): Promise<DriversListResponse> {
+    return this.fetchAPI('/digital-twin/drivers');
+  }
+
+  async compareDrivers(driverIds: string[]): Promise<DriverComparisonResponse> {
+    return this.fetchAPI('/digital-twin/compare', {
+      method: 'POST',
+      body: JSON.stringify(driverIds),
     });
   }
 
@@ -251,7 +327,12 @@ export type {
   AIRecommendation,
   QuickStats,
   DigitalTwinProfile,
+  EnhancedDigitalTwinProfile,
   OptimizationScenario,
   WellbeingCheckIn,
   AirportData,
+  DriverListItem,
+  DriversListResponse,
+  DriverComparison,
+  DriverComparisonResponse,
 };

@@ -113,72 +113,248 @@ async def get_digital_twin_profile(driver_id: str):
     return {
         "driver_id": driver_id,
         "profile": {
-            "preferred_hours": [7, 8, 9, 16, 17, 18, 19, 20],
-            "peak_days": ["Monday", "Tuesday", "Friday", "Saturday"],
-            "avg_earnings_per_hour": 42.50,
-            "surge_responsiveness": 0.85,
+            "preferred_hours": [0, 21, 10, 12, 6],
+            "peak_days": ["Friday", "Tuesday", "Sunday"],
+            "avg_earnings_per_hour": 28.14,
+            "surge_responsiveness": -0.29,
             "fatigue_threshold": 8,
-            "consistency_score": 0.78,
-            "total_weekly_hours": 35,
-            "preferred_zones": ["Airport", "Business District", "University Area"]
+            "consistency_score": 0.12,
+            "total_weekly_hours": 3.3,
+            "preferred_zones": ["City Center", "Airport", "Business District"],
+            "ride_statistics": {
+                "total_rides": 33,
+                "avg_ride_duration": 18.5,
+                "busiest_hour": "0:00 (12AM)",
+                "earnings_per_minute_all": 0.63,
+                "earnings_per_minute_long": 0.33,
+                "earnings_per_minute_short": 1.50
+            },
+            "weekly_breakdown": {
+                "Monday": 5,
+                "Tuesday": 5,
+                "Wednesday": 4,
+                "Thursday": 4,
+                "Friday": 6,
+                "Saturday": 4,
+                "Sunday": 5
+            }
         },
         "learning_status": "complete",
+        "data_quality": "high",
+        "confidence_score": 0.87,
         "last_updated": datetime.now().isoformat()
+    }
+
+@app.get("/api/v1/digital-twin/drivers")
+async def get_available_drivers():
+    """Get list of available drivers for analysis"""
+    return {
+        "total_drivers": 160,
+        "top_drivers": [
+            {"driver_id": "E10156", "rides": 33, "status": "most_active"},
+            {"driver_id": "E10057", "rides": 30, "status": "active"},
+            {"driver_id": "E10121", "rides": 29, "status": "active"},
+            {"driver_id": "E10086", "rides": 28, "status": "active"},
+            {"driver_id": "E10134", "rides": 28, "status": "active"},
+            {"driver_id": "E10113", "rides": 28, "status": "active"},
+            {"driver_id": "E10034", "rides": 26, "status": "active"},
+            {"driver_id": "E10027", "rides": 26, "status": "active"},
+            {"driver_id": "E10149", "rides": 26, "status": "active"},
+            {"driver_id": "E10074", "rides": 26, "status": "active"}
+        ],
+        "sample_ids": ["E10111", "E10152", "E10157", "E10024", "E10146", "E10131", "E10037", "E10139", "E10020", "E10147"]
+    }
+
+@app.post("/api/v1/digital-twin/compare")
+async def compare_drivers(driver_ids: List[str]):
+    """Compare multiple drivers"""
+    comparisons = []
+    
+    for i, driver_id in enumerate(driver_ids[:3]):  # Limit to 3 drivers
+        # Mock comparison data
+        mock_data = [
+            {
+                "driver_id": "E10156",
+                "avg_earnings_per_hour": 28.14,
+                "surge_response": -0.29,
+                "consistency": 0.12,
+                "best_strategy": "surge_optimizer",
+                "current_weekly": 74.11,
+                "optimized_weekly": 572.02
+            },
+            {
+                "driver_id": "E10057", 
+                "avg_earnings_per_hour": 25.14,
+                "surge_response": 0.39,
+                "consistency": 0.13,
+                "best_strategy": "surge_optimizer",
+                "current_weekly": 70.94,
+                "optimized_weekly": 690.49
+            },
+            {
+                "driver_id": "E10121",
+                "avg_earnings_per_hour": 31.22,
+                "surge_response": 0.45,
+                "consistency": 0.28,
+                "best_strategy": "weekend_warrior",
+                "current_weekly": 89.33,
+                "optimized_weekly": 634.12
+            }
+        ]
+        
+        data = mock_data[i] if i < len(mock_data) else mock_data[0]
+        data["driver_id"] = driver_id
+        comparisons.append(data)
+    
+    return {
+        "comparison_date": datetime.now().isoformat(),
+        "drivers": comparisons,
+        "insights": [
+            "All drivers show significant optimization potential",
+            "Surge timing is consistently the best strategy",
+            "Weekend optimization varies by driver profile"
+        ]
     }
 
 @app.post("/api/v1/digital-twin/optimize")
 async def optimize_schedule(request: DriverRequest):
     """Generate optimization scenarios for a driver"""
+    # Enhanced mock data based on actual demo output
+    mock_scenarios = [
+        {
+            "name": "current_pattern",
+            "display_name": "Current Pattern (Optimized)",
+            "projected_earnings": 363.02,
+            "improvement": 389.9,
+            "feasibility": 0.523,
+            "description": "Your current driving pattern optimized for maximum efficiency",
+            "schedule": {
+                "Friday": "0:00-1:00, 10:00-11:00, 12:00-13:00, 21:00-22:00",
+                "Tuesday": "0:00-1:00, 10:00-11:00, 12:00-13:00, 21:00-22:00", 
+                "Sunday": "0:00-1:00, 10:00-11:00, 12:00-13:00, 21:00-22:00"
+            },
+            "weekly_hours": 12,
+            "is_recommended": False,
+            "confidence": "Medium",
+            "earnings_breakdown": {
+                "base_fare": 280.50,
+                "surge_multiplier": 82.52
+            }
+        },
+        {
+            "name": "early_bird",
+            "display_name": "Early Bird",
+            "projected_earnings": 259.85,
+            "improvement": 250.6,
+            "feasibility": 0.273,
+            "description": "Start earlier to catch morning commuters and business travelers",
+            "schedule": {
+                "Friday": "8:00-9:00, 10:00-11:00, 19:00-20:00",
+                "Tuesday": "8:00-9:00, 10:00-11:00, 19:00-20:00",
+                "Sunday": "8:00-9:00, 10:00-11:00, 19:00-20:00"
+            },
+            "weekly_hours": 9,
+            "is_recommended": False,
+            "confidence": "Low",
+            "earnings_breakdown": {
+                "base_fare": 195.50,
+                "surge_multiplier": 64.35
+            }
+        },
+        {
+            "name": "surge_optimizer",
+            "display_name": "Surge Optimizer ⭐",
+            "projected_earnings": 572.02,
+            "improvement": 671.9,
+            "feasibility": 0.648,
+            "description": "Focus on high-surge periods and peak demand times for maximum earnings",
+            "schedule": {
+                "Friday": "17:00-23:00",
+                "Tuesday": "0:00-1:00, 10:00-11:00, 12:00-13:00, 21:00-22:00",
+                "Sunday": "0:00-1:00, 10:00-11:00, 12:00-13:00, 21:00-22:00",
+                "Saturday": "17:00-23:00"
+            },
+            "weekly_hours": 16,
+            "is_recommended": True,
+            "confidence": "High",
+            "earnings_breakdown": {
+                "base_fare": 340.20,
+                "surge_multiplier": 231.82
+            }
+        },
+        {
+            "name": "consistent_grind",
+            "display_name": "Consistent Grind",
+            "projected_earnings": 819.18,
+            "improvement": 1005.4,
+            "feasibility": 0.273,
+            "description": "Regular 9-5 schedule with consistent daily patterns - highest earnings but demanding",
+            "schedule": {
+                "Monday": "9:00-12:00, 16:00-19:00",
+                "Tuesday": "9:00-12:00, 16:00-19:00",
+                "Wednesday": "9:00-12:00, 16:00-19:00",
+                "Thursday": "9:00-12:00, 16:00-19:00",
+                "Friday": "9:00-12:00, 16:00-19:00"
+            },
+            "weekly_hours": 30,
+            "is_recommended": False,
+            "confidence": "Low",
+            "earnings_breakdown": {
+                "base_fare": 615.50,
+                "surge_multiplier": 203.68
+            }
+        },
+        {
+            "name": "weekend_warrior",
+            "display_name": "Weekend Warrior",
+            "projected_earnings": 591.01,
+            "improvement": 697.5,
+            "feasibility": 0.398,
+            "description": "Maximize weekend earnings when demand and surge pricing are highest",
+            "schedule": {
+                "Friday": "16:00-23:00",
+                "Saturday": "12:00-15:00, 18:00-23:00",
+                "Sunday": "12:00-15:00, 17:00-20:00"
+            },
+            "weekly_hours": 18,
+            "is_recommended": False,
+            "confidence": "Medium",
+            "earnings_breakdown": {
+                "base_fare": 425.75,
+                "surge_multiplier": 165.26
+            }
+        }
+    ]
+    
     return {
         "driver_id": request.driver_id,
         "current_performance": {
-            "weekly_earnings": 1250.00,
-            "weekly_hours": 35
+            "weekly_earnings": 74.11,
+            "weekly_hours": 3.3,
+            "weekly_rides": 8,
+            "avg_earnings_per_hour": 22.46,
+            "efficiency_score": 65
         },
-        "scenarios": [
-            {
-                "name": "Current Pattern (Optimized)",
-                "projected_earnings": 1312.50,
-                "improvement": 5.0,
-                "feasibility": 0.95,
-                "description": "Optimized version of your current schedule",
-                "schedule": {}
-            },
-            {
-                "name": "Early Bird",
-                "projected_earnings": 1475.00,
-                "improvement": 18.0,
-                "feasibility": 0.78,
-                "description": "Start 2 hours earlier to catch morning rush",
-                "schedule": {}
-            },
-            {
-                "name": "Surge Optimizer",
-                "projected_earnings": 1625.00,
-                "improvement": 30.0,
-                "feasibility": 0.65,
-                "description": "Focus on peak surge times and events",
-                "schedule": {}
-            },
-            {
-                "name": "Consistent Grind",
-                "projected_earnings": 1400.00,
-                "improvement": 12.0,
-                "feasibility": 0.88,
-                "description": "Regular 9-6 schedule with consistent hours",
-                "schedule": {}
-            },
-            {
-                "name": "Weekend Warrior",
-                "projected_earnings": 1550.00,
-                "improvement": 24.0,
-                "feasibility": 0.72,
-                "description": "Maximize weekend earnings potential",
-                "schedule": {}
-            }
+        "behavioral_profile": {
+            "preferred_hours": [0, 21, 10, 12, 6],
+            "peak_days": ["Friday", "Tuesday", "Sunday"],
+            "avg_earnings_per_hour": 28.14,
+            "surge_responsiveness": -0.29,
+            "fatigue_threshold": 8,
+            "consistency_score": 0.12
+        },
+        "scenarios": mock_scenarios,
+        "best_scenario": "surge_optimizer",
+        "potential_increase": 497.91,
+        "key_insights": [
+            "Current weekly earnings are significantly below potential",
+            "Surge timing optimization offers the best ROI",
+            "Weekend and evening hours show highest demand",
+            "Short rides (< 15 min) yield highest per-minute earnings"
         ],
-        "best_scenario": "Weekend Warrior",
-        "analysis_date": datetime.now().isoformat()
+        "analysis_date": datetime.now().isoformat(),
+        "confidence_level": "High",
+        "data_points_analyzed": 33
     }
 
 # ============================================================================
