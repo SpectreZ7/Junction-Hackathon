@@ -1,8 +1,7 @@
 import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Brain, TrendingUp, Plane, Heart, Star, Clock, Target, Loader2, DollarSign, User } from "lucide-react";
+import { Brain, TrendingUp, Plane, Heart, Star, Clock, Target, Loader2, DollarSign } from "lucide-react";
 import { useState, useEffect } from "react";
 import { uberDriverAPI, type DashboardData, type DriverTargetIncome } from "@/lib/api";
 
@@ -12,24 +11,8 @@ const Dashboard = () => {
   const [targetIncomeData, setTargetIncomeData] = useState<DriverTargetIncome | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDriverId, setSelectedDriverId] = useState("E10156"); // Default driver ID
-  const [availableDrivers, setAvailableDrivers] = useState<DriverTargetIncome[]>([]);
+  const driverId = "E10156"; // Fixed driver ID
 
-  const driverId = selectedDriverId;
-
-  // Load available drivers on component mount
-  useEffect(() => {
-    const loadAvailableDrivers = async () => {
-      try {
-        const response = await uberDriverAPI.getAllDriverTargetIncome();
-        setAvailableDrivers(response.drivers);
-      } catch (err) {
-        console.error('Failed to load available drivers:', err);
-      }
-    };
-    
-    loadAvailableDrivers();
-  }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -105,27 +88,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Driver Selector */}
-        {availableDrivers.length > 0 && (
-          <Card className="p-3 bg-card border-border">
-            <div className="flex items-center gap-3">
-              <User className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-medium text-foreground">Switch Driver:</span>
-              <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Select driver" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableDrivers.map((driver) => (
-                    <SelectItem key={driver.driver_id} value={driver.driver_id}>
-                      {driver.driver_name} ({driver.driver_id}) - ${driver.target_daily_income}/day
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </Card>
-        )}
 
         {/* Status Card */}
         <Card className="p-5 bg-card border-border animate-fade-in">
