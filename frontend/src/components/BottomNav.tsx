@@ -13,8 +13,8 @@ const BottomNav = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 safe-bottom">
-      <div className="max-w-md mx-auto flex justify-around items-center h-20 px-2">
+    <nav className="absolute bottom-0 left-0 right-0 bg-card border-t border-border z-50">
+      <div className="flex justify-around items-center h-20 px-2">
         {navItems.map(({ path, icon: Icon, label }) => {
           const isActive = location.pathname === path;
           return (

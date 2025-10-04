@@ -36,7 +36,7 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-bg pb-24 flex items-center justify-center">
+      <div className="h-full bg-gradient-bg flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
           <p className="text-muted-foreground">Loading your dashboard...</p>
@@ -47,7 +47,7 @@ const Dashboard = () => {
 
   if (error || !dashboardData) {
     return (
-      <div className="min-h-screen bg-gradient-bg pb-24 flex items-center justify-center">
+      <div className="h-full bg-gradient-bg flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-500 mb-2">Error loading dashboard</p>
           <p className="text-sm text-muted-foreground">{error}</p>
@@ -57,7 +57,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-bg pb-24">
+    <div className="bg-gradient-bg pb-4">
       <div className="max-w-md mx-auto p-4 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between pt-2">

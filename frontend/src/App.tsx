@@ -22,9 +22,9 @@ const App = () => (
         <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
           {/* Phone Mockup Container */}
           <div className="phone-mockup">
-            <div className="phone-screen">
+            <div className="phone-screen relative flex flex-col">
               <div className="phone-notch"></div>
-              <div className="relative pt-6">
+              <div className="flex-1 pt-6 overflow-y-auto">
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/coach" element={<AICoach />} />
@@ -33,8 +33,8 @@ const App = () => (
                   <Route path="/wellbeing" element={<Wellbeing />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-                <BottomNav />
               </div>
+              <BottomNav />
             </div>
           </div>
         </div>
