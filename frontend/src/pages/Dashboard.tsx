@@ -57,7 +57,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="bg-gradient-bg pb-4">
+    <div className="bg-gradient-bg pb-24">
       <div className="max-w-md mx-auto p-4 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between pt-2">
@@ -66,7 +66,7 @@ const Dashboard = () => {
             <p className="text-sm text-muted-foreground">Welcome back, Driver {dashboardData.driver_id}</p>
           </div>
           <div className="w-12 h-12 rounded-full bg-gradient-ai flex items-center justify-center text-white font-bold">
-            {dashboardData.driver_id.slice(-2)}
+            E
           </div>
         </div>
 
@@ -83,20 +83,20 @@ const Dashboard = () => {
           </div>
           
           <div className="grid grid-cols-3 gap-4 mt-4">
-            <div>
+            <div className="text-center">
               <p className="text-2xl font-bold text-secondary">${dashboardData.status.earnings_today}</p>
               <p className="text-xs text-muted-foreground">Today</p>
             </div>
-            <div>
+            <div className="text-center">
               <p className="text-2xl font-bold text-foreground">{dashboardData.status.hours_worked}h</p>
               <p className="text-xs text-muted-foreground">Hours</p>
             </div>
-            <div className="flex items-center gap-1">
-              <Heart className="w-4 h-4 text-success" />
-              <div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1 mb-1">
+                <Heart className="w-4 h-4 text-success" />
                 <p className="text-2xl font-bold text-success">{dashboardData.status.wellbeing_score}</p>
-                <p className="text-xs text-muted-foreground">Health</p>
               </div>
+              <p className="text-xs text-muted-foreground">Health</p>
             </div>
           </div>
         </Card>
