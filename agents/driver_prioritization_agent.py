@@ -52,11 +52,25 @@ class DriverPrioritizationAgent:
     and multi-factor reliability assessment.
     """
     
+    drivers_df: pd.DataFrame
+    
     def __init__(self, data_path: str = "data/uber_mock_data.xlsx", 
-                 metrics_path: str = "data/driver_metrics_generated.csv"):
-        """Initialize with driver data and pre-calculated metrics"""
+                 metrics_path: str = "data/driver_metrics_generated.csv",
+                 city_id: Optional[int] = None,
+                 active_only: bool = True):
+        """
+        Initialize with driver data and pre-calculated metrics
+        
+        Args:
+            data_path: Path to Excel file with driver data
+            metrics_path: Path to CSV with pre-calculated metrics
+            city_id: Optional city ID to filter drivers (1-5). If None, uses all drivers.
+            active_only: If True, only include drivers with ride history. Default: True
+        """
         # Load earner data
         self.drivers_df = pd.read_excel(data_path, sheet_name=0)
+        self.active_only = active_only
+        self.city_id = city_id
         
         # Load pre-calculated metrics
         self.metrics_loaded = False
@@ -71,11 +85,40 @@ class DriverPrioritizationAgent:
             print(f"   Will generate metrics on-the-fly...")
             self._enrich_driver_data()
         
+        # Filter to active drivers only (those with ride history)
+        if active_only:
+            try:
+                rides_df = pd.read_excel(data_path, sheet_name='rides_trips')
+                active_driver_ids = list(rides_df['driver_id'].unique())
+                initial_count = len(self.drivers_df)
+                filtered_df: pd.DataFrame = self.drivers_df[self.drivers_df['earner_id'].isin(active_driver_ids)].copy()  # type: ignore[assignment]
+                self.drivers_df = filtered_df
+                print(f"🚗 Filtered to active drivers only: {len(self.drivers_df)} drivers with ride history (from {initial_count} total)")
+            except Exception as e:
+                print(f"⚠️  Could not filter to active drivers: {e}")
+                print(f"   Using all drivers in database")
+        
+        # Filter by city if specified
+        if city_id is not None:
+            initial_count = len(self.drivers_df)
+            city_filtered: pd.DataFrame = self.drivers_df[self.drivers_df['home_city_id'] == city_id].copy()  # type: ignore[assignment]
+            self.drivers_df = city_filtered
+            if len(self.drivers_df) == 0:
+                print(f"⚠️  Warning: No drivers found for city_id {city_id}")
+                # Reload all drivers
+                self.drivers_df = pd.read_excel(data_path, sheet_name=0)
+                if self.metrics_loaded:
+                    metrics_df = pd.read_csv(metrics_path)
+                    self.drivers_df = self.drivers_df.merge(metrics_df, on='earner_id', how='left')
+                self.city_id = None
+            else:
+                print(f"🏙️  Filtered to city {city_id}: {len(self.drivers_df)} drivers (from {initial_count} total)")
+        
         # Configuration parameters
         self.config = {
             'platform_avg_rating': 4.7,  # Global prior (a)
             'equivalent_prior_trips': 20,  # m - how many trips before rating stabilizes
-            'n95_trips': 500,  # Trip count for 95% of max experience credit
+            'n95_trips': 1500,  # Trip count for 95% of max experience credit (raised from 500)
             'max_incidents': 10,  # For normalizing safety scores
             'activeness_window_days': 30,  # Look at last 30 days
         }
@@ -125,9 +168,11 @@ class DriverPrioritizationAgent:
             'engaged': np.random.uniform(0.7, 1.0),
             'offline': np.random.uniform(0.0, 0.5)
         }
-        self.drivers_df['days_active_last30'] = self.drivers_df['status'].apply(
-            lambda s: np.random.uniform(*self._activeness_range(s))
-        )
+        # Use list comprehension instead of apply to avoid type issues
+        days_active = []
+        for status in self.drivers_df['status']:
+            days_active.append(np.random.uniform(*self._activeness_range(status)))
+        self.drivers_df['days_active_last30'] = days_active
         self.drivers_df['activeness_score'] = self.drivers_df['days_active_last30'] / 30
         
         # Generate safety/complaint scores (fewer incidents = better score)
@@ -245,7 +290,7 @@ class DriverPrioritizationAgent:
         """Calculate priority scores for all drivers and rank them"""
         priority_scores = []
         
-        for _, driver in self.drivers_df.iterrows():
+        for _, driver in self.drivers_df.iterrows():  # type: ignore[union-attr]
             # Calculate EAR
             ear = self.calculate_experience_aware_rating(
                 float(driver['rating']),
@@ -315,6 +360,10 @@ class DriverPrioritizationAgent:
         print(f"   Platform Average Rating: {self.config['platform_avg_rating']:.2f}")
         print(f"   Equivalent Prior Trips: {self.config['equivalent_prior_trips']}")
         print(f"   N95 Experience Threshold: {self.config['n95_trips']} trips")
+        if self.city_id is not None:
+            print(f"   🏙️  City Filter: City {self.city_id} only")
+        if self.active_only:
+            print(f"   🚗 Active Drivers Only: Drivers with ride history")
         print()
         
         print(f"⚖️  Factor Weights:")
@@ -448,11 +497,10 @@ def main():
     agent.explain_algorithm()
     
     print("\n" + "="*100)
-    input("Press Enter to see Top 20 drivers...")
     print()
     
     # Get top 20 drivers
-    top_drivers = agent.get_top_drivers(n=20)
+    top_drivers = agent.get_top_drivers(n=100)
     
     # Print report
     agent.print_priority_report(top_drivers)
