@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Driver Prioritization Agent 🎯
+Driver Prioritization Agent 
 
 Implements an intelligent driver prioritization system using Experience-Aware Rating (EAR)
 and multiple reliability/engagement factors to match the best drivers to ride requests.
@@ -20,8 +20,6 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
-import matplotlib.pyplot as plt
-import seaborn as sns
 from dataclasses import dataclass
 import warnings
 warnings.filterwarnings('ignore')
@@ -54,18 +52,24 @@ class DriverPrioritizationAgent:
     and multi-factor reliability assessment.
     """
     
-    def __init__(self, data_path: str = "data/uber_mock_data.xlsx"):
-        """Initialize with driver data"""
+    def __init__(self, data_path: str = "data/uber_mock_data.xlsx", 
+                 metrics_path: str = "data/driver_metrics_generated.csv"):
+        """Initialize with driver data and pre-calculated metrics"""
         # Load earner data
         self.drivers_df = pd.read_excel(data_path, sheet_name=0)
         
-        # Try to load rides data for more accurate metrics
+        # Load pre-calculated metrics
+        self.metrics_loaded = False
         try:
-            self.rides_df = pd.read_excel(data_path, sheet_name="rides_trips")
-            self.has_rides_data = True
-        except:
-            self.rides_df = None
-            self.has_rides_data = False
+            metrics_df = pd.read_csv(metrics_path)
+            # Merge metrics with earner data
+            self.drivers_df = self.drivers_df.merge(metrics_df, on='earner_id', how='left')
+            self.metrics_loaded = True
+            print(f"✅ Loaded driver metrics from {metrics_path}")
+        except FileNotFoundError:
+            print(f"⚠️  Metrics file not found: {metrics_path}")
+            print(f"   Will generate metrics on-the-fly...")
+            self._enrich_driver_data()
         
         # Configuration parameters
         self.config = {
@@ -85,12 +89,13 @@ class DriverPrioritizationAgent:
             'safety': 0.10,
             'experience_boost': 0.10,
         }
-        
-        # Enrich driver data with calculated metrics
-        self._enrich_driver_data()
     
     def _enrich_driver_data(self):
-        """Calculate additional metrics for each driver"""
+        """Calculate additional metrics for each driver (fallback if CSV not available)"""
+        # Skip if metrics already loaded from CSV
+        if self.metrics_loaded:
+            return
+            
         np.random.seed(42)  # For reproducible mock data
         
         # Use experience_months to estimate completed trips
@@ -358,101 +363,6 @@ class DriverPrioritizationAgent:
         print(f"{best_strength} ({strengths[best_strength]:.1%})")
         print()
     
-    def visualize_priority_factors(self, top_n: int = 20):
-        """Create comprehensive visualization of priority factors"""
-        scores = self.get_top_drivers(top_n)
-        
-        fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-        fig.suptitle('🎯 Driver Prioritization Analysis - Top 20 Drivers', 
-                     fontsize=16, fontweight='bold')
-        
-        # Prepare data for plotting
-        driver_ids = [s.earner_id[-4:] for s in scores]  # Last 4 digits for readability
-        
-        # 1. Overall Priority Scores
-        priority_scores = [s.overall_priority_score for s in scores]
-        cmap = plt.colormaps.get_cmap('RdYlGn')
-        colors = cmap(np.linspace(0.3, 0.9, len(priority_scores)))
-        
-        axes[0, 0].barh(driver_ids, priority_scores, color=colors)
-        axes[0, 0].set_xlabel('Priority Score')
-        axes[0, 0].set_title('Overall Priority Ranking')
-        axes[0, 0].invert_yaxis()
-        
-        # 2. Raw Rating vs EAR
-        raw_ratings = [s.raw_rating for s in scores]
-        ear_ratings = [s.experience_adjusted_rating for s in scores]
-        
-        x = np.arange(len(driver_ids))
-        width = 0.35
-        axes[0, 1].bar(x - width/2, raw_ratings, width, label='Raw Rating', alpha=0.8)
-        axes[0, 1].bar(x + width/2, ear_ratings, width, label='EAR (Adjusted)', alpha=0.8)
-        axes[0, 1].set_ylabel('Rating (Stars)')
-        axes[0, 1].set_title('Raw Rating vs Experience-Adjusted Rating')
-        axes[0, 1].set_xticks(x[::2])
-        axes[0, 1].set_xticklabels(driver_ids[::2], rotation=45)
-        axes[0, 1].legend()
-        axes[0, 1].set_ylim(4, 5)
-        
-        # 3. Experience Boost Distribution
-        exp_boosts = [s.experience_boost for s in scores]
-        axes[0, 2].scatter(range(len(exp_boosts)), exp_boosts, 
-                          c=priority_scores, cmap='viridis', s=100, alpha=0.6)
-        axes[0, 2].set_xlabel('Driver Rank')
-        axes[0, 2].set_ylabel('Experience Boost E(n)')
-        axes[0, 2].set_title('Experience Boost Factor')
-        axes[0, 2].axhline(y=0.95, color='r', linestyle='--', alpha=0.3, 
-                          label='95% threshold')
-        axes[0, 2].legend()
-        
-        # 4. Reliability Metrics Heatmap
-        reliability_data = np.array([
-            [s.acceptance_rate for s in scores],
-            [s.cancellation_reliability for s in scores],
-            [s.recent_activeness for s in scores],
-            [s.safety_score for s in scores]
-        ])
-        
-        im = axes[1, 0].imshow(reliability_data, aspect='auto', cmap='RdYlGn', 
-                               vmin=0, vmax=1)
-        axes[1, 0].set_yticks(range(4))
-        axes[1, 0].set_yticklabels(['Acceptance', 'Reliability', 'Activeness', 'Safety'])
-        axes[1, 0].set_xticks(range(0, len(driver_ids), 2))
-        axes[1, 0].set_xticklabels(driver_ids[::2], rotation=45)
-        axes[1, 0].set_title('Reliability Metrics Heatmap')
-        plt.colorbar(im, ax=axes[1, 0])
-        
-        # 5. Factor Contribution Breakdown (for top driver)
-        top_score = scores[0]
-        ear_norm = (top_score.experience_adjusted_rating - 1) / 4
-        contributions = {
-            'EAR': self.weights['rating'] * ear_norm,
-            'Acceptance': self.weights['acceptance'] * top_score.acceptance_rate,
-            'Reliability': self.weights['cancellation'] * top_score.cancellation_reliability,
-            'Activeness': self.weights['activeness'] * top_score.recent_activeness,
-            'Safety': self.weights['safety'] * top_score.safety_score,
-            'Experience': self.weights['experience_boost'] * top_score.experience_boost
-        }
-        
-        axes[1, 1].pie(contributions.values(), labels=contributions.keys(), 
-                      autopct='%1.1f%%', startangle=90)
-        axes[1, 1].set_title(f'Priority Score Breakdown\n(Top Driver: {top_score.earner_id})')
-        
-        # 6. Score Distribution
-        all_scores = self.prioritize_all_drivers()
-        all_priority_scores = [s.overall_priority_score for s in all_scores]
-        
-        axes[1, 2].hist(all_priority_scores, bins=30, color='skyblue', edgecolor='black')
-        axes[1, 2].axvline(x=scores[-1].overall_priority_score, color='r', 
-                          linestyle='--', label=f'Top {top_n} cutoff')
-        axes[1, 2].set_xlabel('Priority Score')
-        axes[1, 2].set_ylabel('Number of Drivers')
-        axes[1, 2].set_title('Priority Score Distribution (All Drivers)')
-        axes[1, 2].legend()
-        
-        plt.tight_layout()
-        plt.show()
-    
     def explain_algorithm(self):
         """Print detailed explanation of the algorithm"""
         print("=" * 100)
@@ -546,10 +456,6 @@ def main():
     
     # Print report
     agent.print_priority_report(top_drivers)
-    
-    # Visualize
-    print("📊 Generating visualizations...")
-    agent.visualize_priority_factors(top_n=20)
     
     # Example: Check specific driver
     print("\n" + "="*100)
