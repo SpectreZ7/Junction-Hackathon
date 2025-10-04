@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 import json
 from event_agent import EventIntelligenceAgent, EventAIAgentConfig, AgentMessage  # ton code agent
+from fastapi.middleware.cors import CORSMiddleware
 
 # =======================
 # Configuration FastAPI
@@ -14,8 +15,17 @@ from event_agent import EventIntelligenceAgent, EventAIAgentConfig, AgentMessage
 
 app = FastAPI(title="Event Intelligence API", version="1.0")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8080"],  # ou le port de votre frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 CITY = "New York"
 HOURS_AHEAD = 12
+
 
 config = EventAIAgentConfig(city=CITY, hours_ahead=HOURS_AHEAD)
 agent = EventIntelligenceAgent(config)

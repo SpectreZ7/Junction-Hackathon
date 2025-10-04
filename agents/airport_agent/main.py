@@ -4,11 +4,19 @@ from typing import Optional
 import json
 from datetime import datetime
 from airport_agent import config, agent, AgentMessage
+from fastapi.middleware.cors import CORSMiddleware
 
 # Ton code existant ici (ou import depuis un module)
 
 app = FastAPI(title="Airport Intelligence API", version="1.0")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8080"],  # ou le port de votre frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 class AirportRequest(BaseModel):
     airport_code: str
 
