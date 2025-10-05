@@ -114,79 +114,41 @@ class AgentDataCollector:
         self.hours_ahead = hours_ahead
     
     def get_event_agent_data(self) -> Dict:
-        """Import and run Event Intelligence Agent"""
+        """Call Event Intelligence Agent API"""
         try:
-            try:
-                from event_agent import EventIntelligenceAgent, EventAIAgentConfig, AgentMessage
-            except ImportError:
-                import agents.event_agent.event_agent as event_agent
-                EventIntelligenceAgent = event_agent.EventIntelligenceAgent
-                EventAIAgentConfig = event_agent.EventAIAgentConfig
-                AgentMessage = event_agent.AgentMessage
+            import requests
             
-            event_config = EventAIAgentConfig(city=self.city, hours_ahead=self.hours_ahead)
-            event_agent_instance = EventIntelligenceAgent(event_config)
-            recommendation = event_agent_instance.get_recommendation()
-            formatted = AgentMessage.format_for_orchestrator(event_agent_instance.agent_id, recommendation)
+            # Call the event agent API
+            response = requests.post(
+                "http://localhost:1001/analyze",
+                json={"city": self.city},
+                timeout=10
+            )
             
-            return formatted
-            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                return {"status": "error", "agent_type": "event_intelligence", "all_peaks": [], "error": f"API returned {response.status_code}"}
+                
         except Exception as e:
             return {"status": "error", "agent_type": "event_intelligence", "all_peaks": [], "error": str(e)}
     
     def get_airport_agent_data(self) -> Dict:
         """Import and run Airport Intelligence Agent"""
         try:
-            try:
-                from airport_agent import AirportIntelligenceAgent, AirportAIAgentConfig, AviationStackClient, AgentMessage
-            except ImportError:
-                import agents.airport_agent.airport_agent as airport_agent
-                AirportIntelligenceAgent = airport_agent.AirportIntelligenceAgent
-                AirportAIAgentConfig = airport_agent.AirportAIAgentConfig
-                AviationStackClient = airport_agent.AviationStackClient
-                AgentMessage = airport_agent.AgentMessage
+            import requests
             
-            airport_config = AirportAIAgentConfig(city=self.city, hours_ahead=self.hours_ahead)
-            api_client = AviationStackClient(airport_config)
-            airport_agent_instance = AirportIntelligenceAgent(airport_config, api_client)
+            # Call the airport agent API for all airports
+            response = requests.get(
+                "http://localhost:1000/all_airports",
+                timeout=10
+            )
             
-            all_recommendations = {}
-            for airport_code in airport_config.airports.keys():
-                recommendation = airport_agent_instance.get_recommendation(airport_code)
-                all_recommendations[airport_code] = recommendation
-            
-            unified_message = {
-                "agent_id": airport_agent_instance.agent_id,
-                "agent_type": "airport_intelligence",
-                "city": airport_config.city,
-                "timestamp": datetime.now().isoformat(),
-                "airports_analyzed": list(airport_config.airports.keys()),
-                "airports": {},
-                "all_peaks_combined": []
-            }
-            
-            global_priority = 0.0
-            
-            for airport_code, recommendation in all_recommendations.items():
-                airport_msg = AgentMessage.format_for_orchestrator(
-                    agent_id=f"airport_agent_{airport_code.lower()}",
-                    recommendation=recommendation
-                )
-                unified_message["airports"][airport_code] = airport_msg
+            if response.status_code == 200:
+                return response.json()
+            else:
+                return {"status": "error", "agent_type": "airport_intelligence", "all_peaks_combined": [], "error": f"API returned {response.status_code}"}
                 
-                for peak in airport_msg.get("all_peaks", []):
-                    peak_with_airport = peak.copy()
-                    peak_with_airport["airport_code"] = airport_code
-                    peak_with_airport["airport_name"] = airport_config.airports[airport_code]["name"]
-                    unified_message["all_peaks_combined"].append(peak_with_airport)
-                
-                if airport_msg.get("priority", 0) > global_priority:
-                    global_priority = airport_msg["priority"]
-            
-            unified_message["global_priority"] = round(global_priority, 3)
-            
-            return unified_message
-            
         except Exception as e:
             return {"status": "error", "agent_type": "airport_intelligence", "all_peaks_combined": [], "error": str(e)}
     
@@ -435,6 +397,7 @@ class OrchestratorAgent:
                 'distance_from_start_miles': peak['distance_from_start_miles'],
                 'travel_time_from_start_minutes': peak['travel_time_from_start_minutes']
             }
+            
             
             if peak.get('weather_conditions'):
                 weather = peak['weather_conditions']
