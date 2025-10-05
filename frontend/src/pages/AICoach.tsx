@@ -66,7 +66,7 @@ const RouteOptimizer = () => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch('http://127.0.0.1:1002/orchestrate', {
+      const response = await fetch('http://127.0.0.1:1003/orchestrate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

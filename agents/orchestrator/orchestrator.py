@@ -4,7 +4,7 @@ import json
 import sys
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
-from groq import Groq
+from openai import OpenAI
 import os
 from dotenv import load_dotenv
 
@@ -16,8 +16,8 @@ load_dotenv()
 
 CITY = "New York"
 HOURS_AHEAD = 12
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = "llama-3.1-8b-instant"
+GPT_API_KEY = os.getenv("GPT_API_KEY")
+GPT_MODEL = "gpt-3.5-turbo"
 TEMPERATURE = 0.3
 MAX_TOKENS = 4000
 
@@ -33,8 +33,8 @@ TURNAROUND_TIME_MINUTES = 5
 
 class OrchestratorConfig:
     def __init__(self, city: str):
-        self.groq_api_key = GROQ_API_KEY
-        self.groq_model = GROQ_MODEL
+        self.gpt_api_key = GPT_API_KEY
+        self.gpt_model = GPT_MODEL
         self.city = city
         self.temperature = TEMPERATURE
         self.max_tokens = MAX_TOKENS
@@ -120,7 +120,7 @@ class AgentDataCollector:
             
             # Call the event agent API
             response = requests.post(
-                "http://localhost:1001/analyze",
+                "http://localhost:1004/analyze",
                 json={"city": self.city},
                 timeout=10
             )
@@ -178,11 +178,11 @@ class AgentDataCollector:
         return event_data, airport_data, weather_data
 
 class OrchestratorAgent:
-    """Master orchestrator using Groq AI to create optimal route plans with weather intelligence"""
+    """Master orchestrator using GPT AI to create optimal route plans with weather intelligence"""
     
     def __init__(self, config: OrchestratorConfig):
         self.config = config
-        self.groq_client = Groq(api_key=config.groq_api_key)
+        self.gpt_client = OpenAI(api_key=config.gpt_api_key)
         self.geo_calc = GeospatialCalculator()
         self.collector = AgentDataCollector(config.city, config.max_planning_hours)
         self.agent_id = f"orchestrator_{config.city.lower().replace(' ', '_')}"
@@ -289,7 +289,30 @@ class OrchestratorAgent:
                 'weather_conditions': weather_for_peak if weather_for_peak else None
             })
         
-        airport_peaks = airport_data.get('all_peaks_combined', [])
+        # Extract peaks from airport data - handle both formats
+        airport_peaks = []
+        if 'all_peaks_combined' in airport_data:
+            airport_peaks = airport_data.get('all_peaks_combined', [])
+        elif 'airports' in airport_data:
+            # Handle the new format where each airport has its own data
+            for airport_code, airport_info in airport_data['airports'].items():
+                if isinstance(airport_info, dict) and 'all_peaks' in airport_info:
+                    peaks = airport_info.get('all_peaks', [])
+                    if isinstance(peaks, list):
+                        airport_peaks.extend(peaks)
+                    elif isinstance(peaks, str) and peaks.strip():
+                        # Handle case where all_peaks is a string (mock data)
+                        # Create mock peaks for testing
+                        airport_peaks.append({
+                            'airport_code': airport_code,
+                            'time_window': '14:30-15:00',
+                            'flight_number': f'TEST{airport_code}',
+                            'airline': 'Test Airline',
+                            'origin': 'Test City',
+                            'passengers': 150,
+                            'priority': 'medium'
+                        })
+        
         for peak in airport_peaks:
             airport_locations = {
                 'JFK': {'lat': 40.6413, 'lng': -73.7781, 'name': 'JFK Airport'},
@@ -354,7 +377,7 @@ class OrchestratorAgent:
         return all_peaks
     
     def create_optimal_plan_with_ai(self, event_data: Dict, airport_data: Dict, weather_data: Dict) -> Dict:
-        """Use Groq AI to analyze all peaks with weather intelligence and create optimal route plan"""
+        """Use GPT AI to analyze all peaks with weather intelligence and create optimal route plan"""
         
         now = datetime.now()
         all_peaks = self.prepare_peaks_for_ai(event_data, airport_data, weather_data)
@@ -493,8 +516,8 @@ RESPOND in this exact JSON format (fill with ACTUAL values from data above):
 }}"""
 
         try:
-            chat_completion = self.groq_client.chat.completions.create(
-                model=self.config.groq_model,
+            chat_completion = self.gpt_client.chat.completions.create(
+                model=self.config.gpt_model,
                 messages=[
                     {"role": "system", "content": self.config.system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -536,7 +559,7 @@ RESPOND in this exact JSON format (fill with ACTUAL values from data above):
             ai_analysis['airport_peaks_count'] = len([p for p in viable_peaks if p['source'] == 'airport'])
             ai_analysis['weather_data_included'] = True
             ai_analysis['weather_summary'] = weather_summary
-            ai_analysis['groq_model'] = self.config.groq_model
+            ai_analysis['gpt_model'] = self.config.gpt_model
             
             return ai_analysis
             

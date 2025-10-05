@@ -6,7 +6,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import json
 from typing import Dict, List, Optional
-from groq import Groq
+from openai import OpenAI
 import os
 from dotenv import load_dotenv
 
@@ -23,7 +23,7 @@ TIME_WINDOW_MINUTES = 30
 
 # API Keys
 AVIATIONSTACK_API_KEY = os.getenv("AVIATIONSTACK_API_KEY")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GPT_API_KEY = os.getenv("GPT_API_KEY")
 
 # Business parameters
 
@@ -32,7 +32,7 @@ AVG_AIRPORT_FARE = 50
 WAITING_COST_PER_MINUTE = 0.8
 
 # AI model configuration
-GROQ_MODEL = "llama-3.1-8b-instant"
+GPT_MODEL = "gpt-3.5-turbo"
 TEMPERATURE = 0.4
 MAX_TOKENS = 1500
 
@@ -87,8 +87,8 @@ class AirportAIAgentConfig:
         
         self.aviationstack_api_key = AVIATIONSTACK_API_KEY
         self.api_base_url = "http://api.aviationstack.com/v1"
-        self.groq_api_key = GROQ_API_KEY
-        self.groq_model = GROQ_MODEL
+        self.gpt_api_key = GPT_API_KEY
+        self.gpt_model = GPT_MODEL
         
         self.city = city
         self.airports = {
@@ -195,7 +195,7 @@ class AirportIntelligenceAgent:
         self.config = config
         self.api_client = api_client
         self.agent_id = f"airport_agent_{config.city.lower().replace(' ', '_')}"
-        self.groq_client = Groq(api_key=config.groq_api_key)
+        self.gpt_client = OpenAI(api_key=config.gpt_api_key)
     
     def _identify_potential_peaks(self, flights_data: List[Dict]) -> str:
         """Pre-calculate peaks to guide Groq"""
@@ -327,8 +327,8 @@ Respond ONLY in JSON (no text before/after):
         try:
             start_time = datetime.now()
             
-            chat_completion = self.groq_client.chat.completions.create(
-                model=self.config.groq_model,
+            chat_completion = self.gpt_client.chat.completions.create(
+                model=self.config.gpt_model,
                 messages=[
                     {"role": "system", "content": self.config.system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -420,7 +420,9 @@ Respond ONLY in JSON (no text before/after):
                     "airline": "American Airlines",
                     "origin": "Los Angeles",
                     "passengers": 180,
-                    "priority": "high"
+                    "priority": "high",
+                    "estimated_revenue": 45.0,
+                    "estimated_wait_minutes": 15
                 },
                 {
                     "airport_code": airport_code,
@@ -429,7 +431,9 @@ Respond ONLY in JSON (no text before/after):
                     "airline": "Delta", 
                     "origin": "Chicago",
                     "passengers": 160,
-                    "priority": "medium"
+                    "priority": "medium",
+                    "estimated_revenue": 35.0,
+                    "estimated_wait_minutes": 20
                 },
                 {
                     "airport_code": airport_code,
@@ -438,7 +442,9 @@ Respond ONLY in JSON (no text before/after):
                     "airline": "United",
                     "origin": "Miami", 
                     "passengers": 140,
-                    "priority": "medium"
+                    "priority": "medium",
+                    "estimated_revenue": 30.0,
+                    "estimated_wait_minutes": 25
                 }
             ]
             
@@ -451,9 +457,9 @@ Respond ONLY in JSON (no text before/after):
                     "action": "go",
                     "target_peak": "14:30-15:00",
                     "reasoning": "High passenger volume",
-                    "expected_revenue": 40,
-                    "waiting_time_minutes": 20,
-                    "confidence": 0.8
+                    "expected_revenue": 45,
+                    "waiting_time_minutes": 15,
+                    "confidence": 0.9
                 },
                 "analysis": "Mock flights for testing",
                 "agent_id": self.agent_id,
@@ -512,8 +518,17 @@ class AgentMessage:
             }.get(peak_priority_str, 0.5)
             
             avg_fare = recommendation.get('avg_airport_fare', 50)
-            estimated_revenue = min(num_flights * avg_fare * 0.7, 100)
-            estimated_wait = 15 + (5 * i)
+            # Use peak's own revenue if available, otherwise calculate it
+            if 'estimated_revenue' in peak and peak['estimated_revenue'] > 0:
+                estimated_revenue = peak['estimated_revenue']
+            else:
+                estimated_revenue = min(num_flights * avg_fare * 0.7, 100)
+            
+            # Use peak's own wait time if available, otherwise calculate it
+            if 'estimated_wait_minutes' in peak and peak['estimated_wait_minutes'] > 0:
+                estimated_wait = peak['estimated_wait_minutes']
+            else:
+                estimated_wait = 15 + (5 * i)
             
             formatted_peak = {
                 "peak_id": f"{agent_id}_peak_{i+1}",

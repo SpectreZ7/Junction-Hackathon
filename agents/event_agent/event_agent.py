@@ -6,7 +6,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import json
 from typing import Dict, List, Optional
-from groq import Groq
+from openai import OpenAI
 import os
 from dotenv import load_dotenv
 
@@ -21,8 +21,8 @@ HOURS_AHEAD = 12
 PEAK_THRESHOLD = 500
 USE_DEMO_MODE = True
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = "llama-3.1-8b-instant"
+GPT_API_KEY = os.getenv("GPT_API_KEY")
+GPT_MODEL = "gpt-3.5-turbo"
 TEMPERATURE = 0.4
 MAX_TOKENS = 1500
 
@@ -44,8 +44,8 @@ DEMO_VENUES = {
 
 class EventAIAgentConfig:
     def __init__(self, city: str, hours_ahead: int):
-        self.groq_api_key = GROQ_API_KEY
-        self.groq_model = GROQ_MODEL
+        self.gpt_api_key = GPT_API_KEY
+        self.gpt_model = GPT_MODEL
         self.city = city
         self.hours_ahead = hours_ahead
         self.peak_threshold = PEAK_THRESHOLD
@@ -152,7 +152,7 @@ class EventIntelligenceAgent:
     def __init__(self, config: EventAIAgentConfig):
         self.config = config
         self.agent_id = f"event_agent_{config.city.lower().replace(' ', '_')}"
-        self.groq_client = Groq(api_key=config.groq_api_key)
+        self.gpt_client = OpenAI(api_key=config.gpt_api_key)
         self.demo_generator = DemoEventGenerator(config.city, config.hours_ahead)
     
     def get_recommendation(self) -> Dict:
@@ -233,8 +233,8 @@ Identify ALL event peaks (end time + 15min). Respond in JSON:
             }
         
         try:
-            chat_completion = self.groq_client.chat.completions.create(
-                model=self.config.groq_model,
+            chat_completion = self.gpt_client.chat.completions.create(
+                model=self.config.gpt_model,
                 messages=[{"role": "system", "content": self.config.system_prompt}, {"role": "user", "content": user_prompt}],
                 temperature=self.config.temperature,
                 max_tokens=self.config.max_tokens
