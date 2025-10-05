@@ -25,6 +25,8 @@ app.add_middleware(
 # =======================================================
 class OrchestratorRequest(BaseModel):
     city: Optional[str] = "New York"
+    driver_id: Optional[str] = "E10156"
+    wellbeing_score: Optional[float] = 85.0
 
 @app.get("/")
 def root():
@@ -33,11 +35,17 @@ def root():
 @app.post("/orchestrate")
 def orchestrate(req: OrchestratorRequest):
     city = req.city or "New York"
+    driver_id = req.driver_id or "E10156"
+    wellbeing_score = req.wellbeing_score if req.wellbeing_score is not None else 85.0
+    
     config = OrchestratorConfig(city=city)
     agent = OrchestratorAgent(config)
     
     try:
-        recommendation = agent.get_orchestrated_recommendation()
+        recommendation = agent.get_orchestrated_recommendation(
+            driver_id=driver_id,
+            wellbeing_score=wellbeing_score
+        )
         return recommendation
     except Exception as e:
         return {"status": "error", "error": str(e), "timestamp": datetime.now().isoformat()}

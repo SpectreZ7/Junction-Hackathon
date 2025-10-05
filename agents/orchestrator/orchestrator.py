@@ -579,10 +579,116 @@ RESPOND in this exact JSON format (fill with ACTUAL values from data above):
                 "timestamp": now.isoformat()
             }
     
-    def get_orchestrated_recommendation(self) -> Dict:
+    def _calculate_break_requirements(self, wellbeing_score: float) -> Dict:
+        """Calculate break requirements based on wellbeing score"""
+        # Lower wellbeing score = more breaks needed
+        # Score ranges: 80-100 (Excellent), 60-79 (Good), 40-59 (Fair), 0-39 (Needs Attention)
+        
+        if wellbeing_score >= 80:
+            # Excellent - minimal breaks
+            return {
+                "breaks_per_4_hours": 1,
+                "break_duration_minutes": 15,
+                "max_continuous_hours": 4,
+                "recommendation": "You're in great shape! Standard break schedule applies."
+            }
+        elif wellbeing_score >= 60:
+            # Good - moderate breaks
+            return {
+                "breaks_per_4_hours": 2,
+                "break_duration_minutes": 15,
+                "max_continuous_hours": 3,
+                "recommendation": "Your wellbeing is good. Taking regular breaks will help maintain your energy."
+            }
+        elif wellbeing_score >= 40:
+            # Fair - frequent breaks
+            return {
+                "breaks_per_4_hours": 3,
+                "break_duration_minutes": 20,
+                "max_continuous_hours": 2,
+                "recommendation": "Consider taking more frequent breaks to recover your energy."
+            }
+        else:
+            # Needs Attention - very frequent breaks
+            return {
+                "breaks_per_4_hours": 4,
+                "break_duration_minutes": 25,
+                "max_continuous_hours": 1.5,
+                "recommendation": "Your wellbeing needs attention. Frequent breaks are essential for your safety."
+            }
+    
+    def _inject_breaks_into_schedule(self, route: List[Dict], wellbeing_score: float) -> List[Dict]:
+        """Inject breaks into the route based on wellbeing score"""
+        if not route:
+            return route
+        
+        break_req = self._calculate_break_requirements(wellbeing_score)
+        enhanced_route = []
+        time_since_break = 0
+        break_counter = 1
+        
+        for i, stop in enumerate(route):
+            # Add the regular stop
+            enhanced_route.append(stop)
+            
+            # Calculate time spent (estimated wait + travel)
+            time_spent = stop.get('estimated_wait_minutes', 15) + stop.get('travel_to_next_minutes', 0)
+            time_since_break += time_spent
+            
+            # Check if we need a break
+            max_minutes = break_req['max_continuous_hours'] * 60
+            is_last_stop = (i == len(route) - 1)
+            
+            if time_since_break >= max_minutes and not is_last_stop:
+                # Insert a break
+                break_stop = {
+                    "sequence": len(enhanced_route) + 1,
+                    "type": "break",
+                    "location": "Rest Area",
+                    "duration_minutes": break_req['break_duration_minutes'],
+                    "reasoning": f"Wellbeing break {break_counter} - {break_req['recommendation']}",
+                    "wellbeing_score": wellbeing_score,
+                    "break_activities": ["Rest", "Hydrate", "Stretch"],
+                    "is_mandatory": wellbeing_score < 60
+                }
+                enhanced_route.append(break_stop)
+                time_since_break = 0
+                break_counter += 1
+        
+        # Resequence all stops
+        for idx, stop in enumerate(enhanced_route):
+            stop['sequence'] = idx + 1
+        
+        return enhanced_route
+    
+    def get_orchestrated_recommendation(self, driver_id: str = "E10156", wellbeing_score: float = 85.0) -> Dict:
         """Main entry point - collects data from all agents and creates optimal plan with weather intelligence"""
         event_data, airport_data, weather_data = self.collector.collect_all_agent_data()
         optimal_plan = self.create_optimal_plan_with_ai(event_data, airport_data, weather_data)
+        
+        # Inject breaks based on wellbeing score
+        if 'optimal_route' in optimal_plan and optimal_plan['optimal_route']:
+            original_route = optimal_plan['optimal_route']
+            enhanced_route = self._inject_breaks_into_schedule(original_route, wellbeing_score)
+            optimal_plan['optimal_route'] = enhanced_route
+            
+            # Update summary with break information
+            if 'summary' in optimal_plan:
+                break_stops = [s for s in enhanced_route if s.get('type') == 'break']
+                total_break_time = sum(s.get('duration_minutes', 0) for s in break_stops)
+                
+                optimal_plan['summary']['scheduled_breaks_count'] = len(break_stops)
+                optimal_plan['summary']['total_break_time_minutes'] = total_break_time
+                optimal_plan['summary']['number_of_stops'] = len(enhanced_route)
+            
+            # Add wellbeing information
+            break_req = self._calculate_break_requirements(wellbeing_score)
+            optimal_plan['wellbeing_integration'] = {
+                "driver_id": driver_id,
+                "wellbeing_score": wellbeing_score,
+                "break_requirements": break_req,
+                "breaks_added": len([s for s in enhanced_route if s.get('type') == 'break'])
+            }
         
         return {
             "event_agent_response": event_data,

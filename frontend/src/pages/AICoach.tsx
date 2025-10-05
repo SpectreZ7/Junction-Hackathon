@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 
 interface RouteStop {
   sequence: number;
-  peak_id: string;
-  source: string;
+  peak_id?: string;
+  source?: string;
+  type?: string;
   location: string;
-  arrival_time: string;
+  arrival_time?: string;
+  duration_minutes?: number;
   service_time_window: string;
   departure_time: string;
   base_revenue: number;
@@ -66,12 +68,20 @@ const RouteOptimizer = () => {
       setLoading(true);
       setError(null);
       
+      // Get wellbeing score from localStorage
+      const wellbeingScore = localStorage.getItem('wellbeingScore');
+      const wellbeingValue = wellbeingScore ? parseFloat(wellbeingScore) : 85; // Default to 85 if not found
+      
       const response = await fetch('http://127.0.0.1:1003/orchestrate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ city: 'New York' })
+        body: JSON.stringify({ 
+          city: 'New York',
+          driver_id: 'E10156',
+          wellbeing_score: wellbeingValue
+        })
       });
       
       if (!response.ok) {
@@ -158,39 +168,56 @@ const RouteOptimizer = () => {
             <div className="space-y-3">
               {routeData.orchestrator_response.optimal_route.map((stop, index) => {
                 const isLast = index === routeData.orchestrator_response.optimal_route.length - 1;
+                const isBreak = stop.type === 'break';
 
                 return (
-                  <div key={stop.peak_id} className="relative">
-                    <Card className="p-4 bg-teal-900/30 border-teal-700/50">
+                  <div key={stop.peak_id || `break-${index}`} className="relative">
+                    <Card className={`p-4 ${isBreak ? 'bg-blue-900/30 border-blue-700/50' : 'bg-teal-900/30 border-teal-700/50'}`}>
                       {/* Step Number */}
-                      <div className="absolute -left-3 -top-3 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                      <div className={`absolute -left-3 -top-3 w-8 h-8 ${isBreak ? 'bg-blue-500' : 'bg-emerald-500'} rounded-full flex items-center justify-center shadow-lg`}>
                         <span className="text-white font-bold">{stop.sequence}</span>
                       </div>
 
                       <div className="ml-2">
                         {/* Location */}
-                        <h3 className="text-xl font-bold text-white mb-2">{stop.location}</h3>
+                        <h3 className="text-xl font-bold text-white mb-2">
+                          {isBreak ? '☕ ' : ''}{stop.location}
+                        </h3>
 
-                        {/* Key Info */}
-                        <div className="grid grid-cols-2 gap-3 mb-3">
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-emerald-400" />
-                            <div>
-                              <p className="text-xs text-slate-400">Arrive at</p>
-                              <p className="text-sm font-bold text-white">{stop.arrival_time}</p>
+                        {isBreak ? (
+                          /* Break Info */
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-blue-400" />
+                              <div>
+                                <p className="text-xs text-slate-400">Break Duration</p>
+                                <p className="text-sm font-bold text-blue-400">{stop.duration_minutes} minutes</p>
+                              </div>
+                            </div>
+                            <p className="text-xs text-blue-300 italic">{stop.reasoning}</p>
+                          </div>
+                        ) : (
+                          /* Regular Stop Info */
+                          <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-emerald-400" />
+                              <div>
+                                <p className="text-xs text-slate-400">Arrive at</p>
+                                <p className="text-sm font-bold text-white">{stop.arrival_time}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="w-4 h-4 text-emerald-400" />
+                              <div>
+                                <p className="text-xs text-slate-400">Earn</p>
+                                <p className="text-sm font-bold text-emerald-400">${stop.weather_adjusted_revenue}</p>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-emerald-400" />
-                            <div>
-                              <p className="text-xs text-slate-400">Earn</p>
-                              <p className="text-sm font-bold text-emerald-400">${stop.weather_adjusted_revenue}</p>
-                            </div>
-                          </div>
-                        </div>
+                        )}
 
                         {/* Travel Time to Next */}
-                        {!isLast && (
+                        {!isLast && !isBreak && (
                           <div className="pt-3 border-t border-teal-700/50">
                             <p className="text-xs text-emerald-300">
                               <Navigation className="w-3 h-3 inline mr-1" />
@@ -204,13 +231,30 @@ const RouteOptimizer = () => {
                     {/* Connector */}
                     {!isLast && (
                       <div className="pl-4 py-2">
-                        <div className="w-0.5 h-6 bg-emerald-500/50 ml-0.5"></div>
+                        <div className={`w-0.5 h-6 ${isBreak ? 'bg-blue-500/50' : 'bg-emerald-500/50'} ml-0.5`}></div>
                       </div>
                     )}
                   </div>
                 );
               })}
             </div>
+
+            {/* Wellbeing Info */}
+            {routeData.orchestrator_response.wellbeing_integration && (
+              <Card className="p-4 bg-blue-900/20 border-blue-700/50">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-slate-300">Wellbeing Score</p>
+                    <p className="text-lg font-bold text-blue-400">{routeData.orchestrator_response.wellbeing_integration.wellbeing_score}</p>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-slate-300">Breaks Scheduled</p>
+                    <p className="text-lg font-bold text-blue-400">{routeData.orchestrator_response.wellbeing_integration.breaks_added}</p>
+                  </div>
+                  <p className="text-xs text-blue-300 italic">{routeData.orchestrator_response.wellbeing_integration.break_requirements.recommendation}</p>
+                </div>
+              </Card>
+            )}
 
             {/* Bottom Summary */}
             <Card className="p-4 bg-emerald-900/20 border-emerald-700/50">
