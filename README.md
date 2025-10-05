@@ -2,8 +2,6 @@
 
 **Junction Hackathon 2024 - Agentic-AI-Powered Driver Optimization Platform**
 
-### THIS README was written by hand with love and without any LLMs!
-
 ## The Problem
 
 If I was an Uber driver, I would be tempted to go to the website of the closest airports near my city, try to **COPY** all the **departures and arrivals flights data** and **PASTE** them on **ChatGPT**, prompting something like:
