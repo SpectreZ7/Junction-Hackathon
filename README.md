@@ -71,25 +71,12 @@ A non-agentic tool that provides hourly weather forecasts to the Orchestrator. W
 All three agents plus the weather utility feed their insights into the **Orchestrator Agent**, which acts as the central decision-making hub:
 
 - **Data Aggregation**: Collects real-time information from all specialized agents and utility functions through standardized MCP (Model Context Protocol) agent-to-agent communication
-- **Intelligent Synthesis**: Uses **Groq API with lightweight models** to analyze and cross-reference data from multiple sources. Despite using smaller, efficient models, we managed to generate **highly logical and actionable recommendations** by leveraging Groq's ultra-fast inference speeds
+- **Intelligent Synthesis**: Uses **Chatgpt API with lightweight models** to analyze and cross-reference data from multiple sources. Despite using smaller, efficient models, we managed to generate **highly logical and actionable recommendations** by leveraging Groq's ultra-fast inference speeds
 - **Contextual Ranking**: Weighs different factors—airport traffic, event timing, internal surge metrics, cancellation rates, and weather conditions—based on time of day and location proximity to prioritize recommendations
 - **Actionable Output**: Produces simple, time-based recommendations on when and where to drive to maximize trips and revenue, delivered in a structured format drivers can act on immediately
 
 The Orchestrator doesn't just combine data—it creates a strategic roadmap for each driver's shift by understanding the complex interplay between external events and internal platform dynamics.
 
----
-
-## Production-Ready Architecture
-
-This solution is **production-ready** thanks to a robust microservices architecture:
-
-- **FastAPI Deployment**: Each agent (Airport, Event, Internal Analytics) and the Orchestrator runs as an independent FastAPI microservice with well-defined REST endpoints
-- **Containerized Services**: All agents and utility functions can be easily containerized and can communicate efficiently through API contracts
-- **Horizontal Scalability**: The microservices architecture enables **easy scalability using Kubernetes** on cloud platforms like AWS EKS, GCP GKE, or Azure AKS
-- **Cloud-Native Design**: Thanks to the API-based deployment, the system is **ready to be shipped** and can handle thousands of concurrent drivers by simply scaling the number of pod replicas
-- **Resilience**: Each agent operates independently, so if one service experiences issues, others continue functioning without disruption
-
-The infrastructure is designed for real-world deployment from day one, not just a hackathon demo.
 
 
 
